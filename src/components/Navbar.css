@@ -1,0 +1,306 @@
+/* // Seller.css */
+.seller-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.seller-navbar {
+  background-color: #333;
+  color: #fff;
+  padding: 1rem;
+}
+
+.seller-navbar ul {
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.seller-navbar li {
+  margin-right: 1rem;
+}
+
+.seller-navbar a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.seller-navbar a:hover {
+  color: #ccc;
+}
+
+.seller-profile,
+.manage-products,
+.add-product,
+.reviews {
+  padding: 2rem;
+}
+.seller-profile-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.seller-profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.seller-profile-header img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-right: 1.5rem;
+}
+
+.seller-profile-info h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.seller-profile-info h3 {
+  font-size: 1.4rem;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.seller-profile-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 2rem;
+}
+
+.seller-profile-section {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.seller-profile-section h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.seller-profile-section p {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.profile-info {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f5f5f5;
+}
+
+button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+.review {
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+/* Navbar.css */
+/* ... */
+
+@media (max-width: 768px) {
+  /* Styles for screens smaller than 768px */
+  .navbar-search {
+    display: none; /* Hide the search bar on smaller screens initially */
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .navbar-toggle {
+    display: block; /* Show the toggle button on smaller screens */
+  }
+
+  .navbar-nav {
+    display: none; /* Hide the navigation links on smaller screens initially */
+  }
+
+  .navbar-nav.open {
+    display: flex; /* Show the navigation links when the toggle button is clicked */
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    background-color: #fff; 
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .navbar-nav.open ul {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .navbar-nav.open li {
+    margin-bottom: 1rem;
+  }
+
+  .navbar-search.open {
+    display: flex; /* Show the search bar when the toggle button is clicked */
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .navbar-search.open input {
+    margin-bottom: 0.5rem;
+  }
+
+  .navbar-search.open button {
+    margin-top: 0.5rem;
+  }
+}
+
+/* Dark mode button styles */
+.dark-mode-btn {
+  background-color: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.navbar-light .dark-mode-btn {
+  color: #333;
+}
+
+.navbar-dark .dark-mode-btn {
+  color: #fff;
+}
+
+.navbar-nav .dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #fff;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: none;
+  z-index: 1;
+}
+
+.navbar-nav li:hover > .dropdown {
+  display: block;
+}
+.profile-picture {
+  width: 40px; /* Adjust the width to your preference */
+  height: 40px; /* Adjust the height to your preference */
+  border-radius: 50%; /* To make it round */
+  object-fit: cover; /* To ensure the image fills the space without stretching */
+}
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.navbar-search {
+  position: relative;
+}
+
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  z-index: 1000;
+}
+
+.search-suggestions li {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.search-suggestions li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Responsive styles for the search bar */
+@media (max-width: 768px) {
+  .navbar-search {
+    order: 3;
+    margin: 0.5rem auto !important;
+    max-width: 100% !important;
+  }
+
+  .navbar-search input {
+    font-size: 14px !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .navbar-search button {
+    width: 40px !important;
+  }
+
+  .navbar-search button svg {
+    font-size: 16px !important;
+  }
+}
+
+/* Further reduce size for even smaller screens */
+@media (max-width: 480px) {
+  .navbar-search input {
+    font-size: 12px !important;
+    padding: 0.4rem 0.6rem !important;
+  }
+
+  .navbar-search button {
+    width: 35px !important;
+  }
+
+  .navbar-search button svg {
+    font-size: 14px !important;
+  }
+}
