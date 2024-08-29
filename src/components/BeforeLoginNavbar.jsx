@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaShoppingCart, FaTimes, FaMoon, FaSun } from 'react-icons/fa';
-import { GiHamburgerMenu } from 'react-icons/gi';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './Navbar.css';
-import { Toaster, toast } from 'react-hot-toast';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { FaSearch, FaShoppingCart, FaTimes, FaUser } from "react-icons/fa";
+import { GiHamburgerMenu } from "react-icons/gi";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Toaster, toast } from "react-hot-toast";
 import styled, { keyframes } from 'styled-components';
-import { BASE_URL } from '../api';
+
+
+const BASE_URL = "http://localhost:5002";
 
 const shakeAnimation = keyframes`
   0% { transform: translateX(0); }
@@ -22,70 +23,136 @@ const ShakeableNavLink = styled(NavLink)`
 
 const BeforeLoginNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cartClicked, setCartClicked] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
+  const categoryDropdownRef = useRef(null);
+
   const navigate = useNavigate();
+  const navbarRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
-    const handleResize = () => setScreenWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setShowCategoriesDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
+  const handleCategoryMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setShowCategoriesDropdown(true);
+  };
+
+  const handleCategoryMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setShowCategoriesDropdown(false);
+    }, 300); // 300ms delay before hiding the dropdown
+  };
+
+  const handleDropdownMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  };
+
+  
+
+
+  const handleCategoryHover = () => {
+    setShowCategoriesDropdown(true);
+  };
+
+
+  const fetchCategories = useCallback(async () => {
+    if (categories.length === 0) {
       try {
         setIsLoading(true);
         const response = await axios.get(`${BASE_URL}/api/categories`);
         setCategories(response.data);
+        setError(null);
       } catch (error) {
-        console.error('Error fetching categories:', error);
-        setError('Failed to load categories. Please try again later.');
+        console.error("Error fetching categories:", error);
+        setError("Failed to load categories. Please try again later.");
       } finally {
         setIsLoading(false);
       }
-    };
+    }
+  }, [categories]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
     fetchCategories();
-  }, []);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [fetchCategories]);
+
+  const memoizedCategories = useMemo(() => categories, [categories]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   const handleSearch = async (e) => {
     e.preventDefault();
-    
-    if (!searchTerm.trim()) {
-      return;
-    }
-  
+    if (!searchTerm.trim()) return;
+
     try {
-      const categoriesResponse = await axios.get(`${BASE_URL}/api/categories/search?q=${searchTerm}`);
+      const categoriesResponse = await axios.get(
+        `${BASE_URL}/api/categories/search?q=${searchTerm}`
+      );
       const categories = categoriesResponse.data;
-  
+
       let products = [];
       if (categories.length > 0) {
-        const productsResponse = await axios.get(`${BASE_URL}/api/products?category=${categories[0]._id}`);
+        const productsResponse = await axios.get(
+          `${BASE_URL}/api/products?category=${categories[0]._id}`
+        );
         products = productsResponse.data;
       }
-  
+
       const searchResults = { categories, products };
-      navigate('/search-results', { state: { searchResults } });
+
+      console.log("Search results:", searchResults); // Debug log
+
+      if (categories.length === 0 && products.length === 0) {
+        toast.error(`No matching results found for "${searchTerm}"`);
+      } else {
+        navigate("/search-results", { 
+          state: { searchResults, searchTerm } 
+        }, (error) => {
+          if (error) {
+            console.error("Navigation error:", error);
+            toast.error("An error occurred while navigating to search results");
+          }
+        });
+      }
     } catch (error) {
-      console.error('Error searching products and categories:', error);
-      navigate('/search-results', { state: { searchResults: { categories: [], products: [] } } });
+      console.error("Error searching products and categories:", error);
+      toast.error("An error occurred while searching");
     }
+
+    setIsOpen(false);
   };
 
   const handleSearchInputChange = async (e) => {
@@ -94,10 +161,18 @@ const BeforeLoginNavbar = () => {
 
     if (value.trim()) {
       try {
-        const response = await axios.get(`${BASE_URL}/api/categories/search?q=${value}`);
+        const response = await axios.get(
+          `${BASE_URL}/api/categories/search?q=${value}`
+        );
         setSearchSuggestions(response.data.slice(0, 5));
+
+        if (response.data.length === 0 && value.length === 1) {
+          setSearchSuggestions([
+            { _id: "no-result", name: `No matching results for "${value}"` },
+          ]);
+        }
       } catch (error) {
-        console.error('Error fetching search suggestions:', error);
+        console.error("Error fetching search suggestions:", error);
       }
     } else {
       setSearchSuggestions([]);
@@ -105,6 +180,7 @@ const BeforeLoginNavbar = () => {
   };
 
   const handleSuggestionClick = (suggestion) => {
+    if (suggestion._id === "no-result") return;
     setSearchTerm(suggestion.name);
     setSearchSuggestions([]);
     handleSearch({ preventDefault: () => {} });
@@ -117,146 +193,182 @@ const BeforeLoginNavbar = () => {
     setTimeout(() => setCartClicked(false), 1000);
   };
 
+  const handleCategoryClick = (categoryId) => {
+    navigate(`/categories/${categoryId}`);
+    setShowCategoriesDropdown(false);
+  };
+
   return (
-    <nav className={`navbar ${isDarkMode ? 'navbar-dark' : 'navbar-light'}`}>
+    <nav className="bg-white shadow-md sticky top-0 z-50">
       <Toaster />
-      <div className="navbar-container">
-        <div className="navbar-brand" style={{ order: 1 }}>
-          <Link to="/">
-            <div className="logo">
-              <span className="logo-text">PEM</span>
-              <span className="logo-subtext">Public E-Marketplace</span>
-            </div>
-          </Link>
-        </div>
-        <form 
-          onSubmit={handleSearch} 
-          className="navbar-search"
-          style={{
-            display: 'flex',
-            order: 2,
-            width: '100%',
-            maxWidth: '600px',
-            margin: '1rem auto',
-            position: 'relative',
-          }}
-        >
-          <div style={{
-            display: 'flex',
-            width: '100%',
-          }}>
-            <input
-              type="text"
-              placeholder="Search for products..."
-              value={searchTerm}
-              onChange={handleSearchInputChange}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                fontSize: '16px',
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-              }}
-            />
-            <button 
-              type="submit"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0 1rem',
-              }}
-            >
-              <FaSearch style={{ color: '#4a90e2', fontSize: '18px' }} />
-            </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
+          <div className="flex-shrink-0 flex items-center">
+            <Link to="/" className="flex flex-col items-start">
+              <span className="text-4xl font-black tracking-wider font-arial" style={{ color: "#33DDFF", fontWeight: "900" }}>
+                PEM
+              </span>
+              <span className="text-xs text-gray-500 font-medium -mt-1">
+                Public E-Marketplace
+              </span>
+            </Link>
           </div>
-          {searchSuggestions.length > 0 && (
-            <ul className="search-suggestions" style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              backgroundColor: '#fff',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              borderRadius: '0 0 4px 4px',
-              listStyle: 'none',
-              padding: 0,
-              margin: 0,
-            }}>
-              {searchSuggestions.map((suggestion) => (
-                <li 
-                  key={suggestion._id} 
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  style={{
-                    padding: '0.5rem',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #eee',
-                  }}
-                >
-                  {suggestion.name}
+
+          <div className="hidden md:block flex-grow max-w-2xl mx-4">
+            <form onSubmit={handleSearch} className="relative">
+              <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
+                <input
+                  ref={searchInputRef}
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  placeholder="Search for products..."
+                  className="w-full py-3 px-6 bg-transparent text-gray-700 leading-tight focus:outline-none"
+                />
+                <button type="submit" className="p-3 text-[#33DDFF] focus:outline-none transition-colors duration-200">
+                  <FaSearch className="w-5 h-5" />
+                </button>
+              </div>
+              {searchSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
+                  {searchSuggestions.map((suggestion) => (
+                    <li
+                      key={suggestion._id}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {suggestion.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </form>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-6">
+        <div 
+          className="relative group"
+          ref={categoryDropdownRef}
+          onMouseEnter={handleCategoryMouseEnter}
+          onMouseLeave={handleCategoryMouseLeave}
+        >
+          <NavLink to="/AllCategoriesPage" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+            Categories
+          </NavLink>
+          {showCategoriesDropdown && (
+            <ul 
+              className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50"
+              onMouseEnter={handleDropdownMouseEnter}
+              onMouseLeave={handleCategoryMouseLeave}
+            >
+              {memoizedCategories.map((category) => (
+                <li key={category._id}>
+                  <button
+                    onClick={() => handleCategoryClick(category._id)}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    {category.name}
+                  </button>
                 </li>
               ))}
             </ul>
           )}
-        </form>
-        <div className={`navbar-nav ${isOpen ? 'open' : ''}`} style={{ order: 3 }}>
-          <ul>
-            <li>
-              <NavLink to="/AllCategoriesPage" activeClassName="active">
-                Categories
-                <ul className="dropdown">
-                  {isLoading ? (
-                    <li>Loading categories...</li>
-                  ) : error ? (
-                    <li>{error}</li>
-                  ) : categories.length > 0 ? (
-                    categories.map((category) => (
-                      <li key={category._id}>
-                        <NavLink to={`/categories/${category._id}`}>{category.name}</NavLink>
-                      </li>
-                    ))
-                  ) : (
-                    <li>No categories available</li>
-                  )}
-                </ul>
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/whats-new" activeClassName="active">
-                What's New
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/cart" onClick={handleCartClick}>
-                <FaShoppingCart /> Cart
-              </NavLink>
-            </li>
-            <li>
-              <ShakeableNavLink to="/login" shake={cartClicked}>
-                Login
-              </ShakeableNavLink>
-            </li>
-            <li>
-              <NavLink to="/register">Sign Up</NavLink>
-            </li>
-            <li>
-              <NavLink to="/deals" activeClassName="active">
-                Deals
-              </NavLink>
-            </li>
-            {/* <li>
-              <button className="dark-mode-btn" onClick={toggleDarkMode}>
-                {isDarkMode ? <FaSun /> : <FaMoon />}
-              </button>
-            </li> */}
-          </ul>
         </div>
-        <div className="navbar-toggle" style={{ order: 0 }}>
-          <button onClick={toggleMenu}>
-            {isOpen ? <FaTimes /> : <GiHamburgerMenu />}
-          </button>
+
+        <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+              About
+            </NavLink>
+            <NavLink to="/contact" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+              Contact
+            </NavLink>
+            <ShakeableNavLink to="/cart" shake={cartClicked} onClick={handleCartClick} className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
+              <FaShoppingCart className="mr-1 text-[#33DDFF]" /> Cart
+            </ShakeableNavLink>
+            <NavLink to="/login" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
+              <FaUser className="mr-1 text-[#33DDFF]" /> Login
+            </NavLink>
+            <NavLink to="/register" className="bg-[#33DDFF] text-white hover:bg-[#00BBDD] px-4 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+              Sign Up
+            </NavLink>
+          </div>
+          <div className="flex md:hidden">
+            <button
+              onClick={toggleMenu}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#33DDFF]"
+            >
+              {isOpen ? (
+                <FaTimes className="block h-6 w-6 text-[#33DDFF]" />
+              ) : (
+                <GiHamburgerMenu className="block h-6 w-6 text-[#33DDFF]" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {isMobile && (
+        <div className="md:hidden px-4 py-2">
+          <form onSubmit={handleSearch} className="relative">
+            <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
+              <input
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                placeholder="Search for products..."
+                className="w-full py-2 px-4 bg-transparent text-gray-700 leading-tight focus:outline-none"
+              />
+              <button type="submit" className="p-2 text-[#33DDFF] focus:outline-none transition-colors duration-200">
+                <FaSearch className="w-5 h-5" />
+              </button>
+            </div>
+            {searchSuggestions.length > 0 && (
+              <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
+                {searchSuggestions.map((suggestion) => (
+                  <li
+                    key={suggestion._id}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  >
+                    {suggestion.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </form>
+        </div>
+      )}
+
+      <div
+        className={`${
+          isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+        } md:hidden overflow-hidden transition-all duration-300 ease-in-out`}
+      >
+        <div className="px-2 pt-2 pb-3 space-y-1">
+          <NavLink to="/AllCategoriesPage" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
+            Categories
+          </NavLink>
+          {memoizedCategories.map((category) => (
+            <button
+              key={category._id}
+              onClick={() => handleCategoryClick(category._id)}
+              className="text-gray-600 hover:text-[#33DDFF] block w-full text-left px-3 py-2 rounded-md text-sm font-medium tracking-wide ml-4"
+            >
+              {category.name}
+            </button>
+          ))}
+           <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
+            About
+          </NavLink>
+          <NavLink to="/contact" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
+            Contact
+          </NavLink>
+          <ShakeableNavLink to="/cart" shake={cartClicked} onClick={handleCartClick} className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center">
+            <FaShoppingCart className="mr-2 text-[#33DDFF]" /> Cart
+          </ShakeableNavLink>
+          <NavLink to="/login" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center">
+            <FaUser className="mr-2 text-[#33DDFF]" /> Login
+          </NavLink>
+          <NavLink to="/register" className="bg-[#33DDFF] text-white hover:bg-[#00BBDD] block px-3 py-2 rounded-md text-base font-semibold tracking-wide text-center transition-colors duration-200">
+            Sign Up
+          </NavLink>
         </div>
       </div>
     </nav>

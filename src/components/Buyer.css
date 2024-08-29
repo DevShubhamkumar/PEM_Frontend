@@ -882,3 +882,6 @@ Footer
   font-size: 12px;
   color: #ccc;
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -11,9 +11,8 @@ import HomePage from './components/HomePage';
 import BuyerNavbar from './components/BuyerNavbar';
 import AdminNavbar from './components/AdminNavbar';
 import SellerNavbar from './components/SellerNavbar';
-import CategoryList from './components/CategoryList';
-import WhatsNewPage from './components/WhatsNewPage';
-import DealsList from './components/DealsList';
+import AboutPage from './components/AboutPage';
+import ContactPage from './components/ContactPage';
 import Cart from './components/Cart';
 import BeforeLoginNavbar from './components/BeforeLoginNavbar';
 import CategoryProductsPage from './components/CategoryProductsPage';
@@ -34,7 +33,6 @@ import AdminProfile from './components/AdminProfile';
 import SellerProfile from './components/SellerProfile';
 import ForgotPassword from './components/ForgotPassword';
 import { BASE_URL } from './api';
-
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -111,8 +109,6 @@ const App = () => {
                   <Route index element={<Navigate to="/buyer/profile" />} />
                   <Route path="profile" element={<BuyerProfile buyerData={buyerData} />} />
                   <Route path="orders" element={<OrdersPage />} />
-                  <Route path="deals" element={<DealsList />} />
-                  <Route path="Whats-new" element={<WhatsNewPage />} />
                 </Route>
               </Routes>
             </>
@@ -130,17 +126,17 @@ const App = () => {
             <>
               <SellerNavbar handleLogout={handleLogout} sellerData={sellerData} />
               <Routes>
-  <Route path="/seller/*" element={
-    <ProtectedRoute isAuthenticated={isAuthenticated} userRole="seller" redirectPath="/login">
-      <Seller sellerData={sellerData} />
-    </ProtectedRoute>
-  }>
-    <Route index element={<Navigate to="/seller/profile" />} />
-    <Route path="profile" element={<SellerProfile sellerData={sellerData} />} />
-    <Route path="manage-products" element={<SellerManageProducts />} />
-    <Route path="manage-categories" element={<ManageCategories />} />
-  </Route>
-</Routes>
+                <Route path="/seller/*" element={
+                  <ProtectedRoute isAuthenticated={isAuthenticated} userRole="seller" redirectPath="/login">
+                    <Seller sellerData={sellerData} />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Navigate to="/seller/profile" />} />
+                  <Route path="profile" element={<SellerProfile sellerData={sellerData} />} />
+                  <Route path="manage-products" element={<SellerManageProducts />} />
+                  <Route path="manage-categories" element={<ManageCategories />} />
+                </Route>
+              </Routes>
             </>
           ) : null
         ) : (
@@ -151,9 +147,8 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
         <Route path="/register" element={<RegisterForm />} />
-        <Route path="/categories" element={<CategoryList />} />
-        <Route path="/Whats-new" element={<WhatsNewPage />} />
-        <Route path="/deals" element={<DealsList />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/user-details" element={<UserDetailsPage />} />
         <Route path="/payment-gateway" element={<PaymentGatewayPage />} />
@@ -167,7 +162,6 @@ const App = () => {
         <Route path="/payment-gateway" element={<PaymentGatewayPage />} />
         <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        
       </Routes>
     </Router>
   );

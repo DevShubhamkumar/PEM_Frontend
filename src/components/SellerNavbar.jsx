@@ -5,7 +5,6 @@ import { Link, NavLink } from 'react-router-dom';
 import axios from 'axios';
 import './Navbar.css';
 import { BASE_URL } from '../api';
-
 const SellerNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -65,22 +64,22 @@ const SellerNavbar = ({ handleLogout }) => {
         <div className={`navbar-nav ${isOpen ? 'open' : ''}`}>
           <ul>
             <li>
-              <NavLink to="/seller" end activeClassName="active">
+              <NavLink to="/seller" end>
                 Profile
               </NavLink>
             </li>
             <li>
-              <NavLink to="/seller/products" activeClassName="active">
+              <NavLink to="/seller/products">
                 Manage Products
               </NavLink>
             </li>
             <li>
-              <NavLink to="/seller/add-product" activeClassName="active">
+              <NavLink to="/seller/add-product">
                 Add Product
               </NavLink>
             </li>
             <li>
-              <NavLink to="/seller/products/:productId/reviews" activeClassName="active">
+              <NavLink to="/seller/products/:productId/reviews">
                 Reviews
               </NavLink>
             </li>

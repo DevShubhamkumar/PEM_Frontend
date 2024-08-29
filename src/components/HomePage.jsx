@@ -1,285 +1,209 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Carousel } from "react-bootstrap";
-import {
-  FaShoppingCart,
-  FaCloudUploadAlt,
-  FaUserTie,
-  FaLaptop,
-  FaHeart,
-  FaMoneyBillAlt,
-  FaShieldAlt,
-  FaListAlt,
-  FaUserCircle,
-} from "react-icons/fa";
-import "./HomePage.css";
-import { Link } from "react-router-dom";
+import { FaShoppingCart, FaCloudUploadAlt, FaUserTie, FaLaptop, FaHeart, FaMoneyBillAlt, FaShieldAlt, FaListAlt, FaStar, FaTruck, FaHeadset, FaGlobe, FaChevronDown } from "react-icons/fa";
+import { Link, useLocation } from "react-router-dom";
 import Footer from './Footer';
 import { BASE_URL } from '../api';
+import { Carousel } from 'react-responsive-carousel';
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 
 const HomePage = () => {
-  const [buyerData, setBuyerData] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const categoriesResponse = await axios.get(
-          `${BASE_URL}/api/categories`
-        );
+        const categoriesResponse = await axios.get(`${BASE_URL}/api/categories`);
         setCategories(categoriesResponse.data);
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
+        setIsLoading(false);
       }
     };
 
     fetchData();
   }, []);
 
+  const displayedCategories = showAllCategories ? categories : categories.slice(0, 8);
+
+  if (isLoading) {
+    return (
+      <div className="fixed top-0 left-0 right-0 bottom-0 w-full h-screen z-50 overflow-hidden bg-gray-700 opacity-75 flex flex-col items-center justify-center">
+        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+        <h2 className="text-center text-white text-xl font-semibold">Loading...</h2>
+        <p className="w-1/3 text-center text-white">This may take a few seconds, please don't close this page.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="home-page">
-      {/* Buyer Details Section */}
-      {buyerData && (
-        <div className="buyer-details">
-          <h2>Buyer Details</h2>
-          <div className="buyer-info">
-            <div>
-              <h4>Name:</h4>
-              <p>{buyerData.name}</p>
-            </div>
-            <div>
-              <h4>Email:</h4>
-              <p>{buyerData.email}</p>
-            </div>
-            {buyerData.company && (
-              <div>
-                <h4>Company:</h4>
-                <p>{buyerData.company}</p>
-              </div>
-            )}
-            {buyerData.jobTitle && (
-              <div>
-                <h4>Job Title:</h4>
-                <p>{buyerData.jobTitle}</p>
-              </div>
-            )}
-          </div>
+    <div className="home-page w-full">
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-32">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Welcome to Our E-Marketplace</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Discover amazing products and services from trusted sellers worldwide</p>
+          <Link to="/categories" className="bg-white text-indigo-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-100 transition duration-300 animate-pulse inline-block">
+            Start Exploring
+          </Link>
         </div>
-      )}
-      {/* Carousel Section */}
-      <div className="carousel-section">
-        <Carousel>
-          <Carousel.Item>
-            <img
-              className="d-block w-100"
-              src="./first.jpg"
-              alt="Featured Product"
-            />
-            <Carousel.Caption>
-              <h3>Featured Product</h3>
-              <p>Discover our latest product offerings with amazing discounts.</p>
-              <a href="/">Learn More &raquo;</a>
-            </Carousel.Caption>
-          </Carousel.Item>
-          <Carousel.Item>
-            <img
-              className="d-block w-100"
-              src="./second.jpg"
-              alt="Promotional Services"
-            />
-            <Carousel.Caption>
-              <h3>Promotional Services</h3>
-              <p>Check out our special service deals tailored for your needs.</p>
-              <a href="/">Explore Services &raquo;</a>
-            </Carousel.Caption>
-          </Carousel.Item>
-          <Carousel.Item>
-            <img
-              className="d-block w-100"
-              src="./third.jpg"
-              alt="Platform Features"
-            />
-            <Carousel.Caption>
-              <h3>PEM Highlights</h3>
-              <p>Learn more about our platform features and benefits.</p>
-              <a href="/">Discover PEM &raquo;</a>
-            </Carousel.Caption>
-          </Carousel.Item>
-        </Carousel>
-      </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
 
-      {/* Product Categories Section */}
-      <div className="popular-categories">
-        <h2>Product Categories</h2>
-        <div className="category-grid">
-          {categories.slice(0, 7).map((category) => (
-            <div key={category._id} className="category-card">
-              {category.categoryImage ? (
-                <img src={category.categoryImage} alt={category.name} />
-              ) : (
-                <div>No image available</div>
-              )}
-              <h3>{category.name}</h3>
-              <Link to={`/categories/${category._id}`}>
-                Explore {category.name} &raquo;
-              </Link>
-            </div>
-          ))}
-          <div className="category-card">
-            <img src="exploremore.jpg" alt="Explore More" />
-            <h3>Explore More</h3>
-            <Link to="/AllCategoriesPage">Explore More &raquo;</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Popular Service Categories */}
-      <div className="popular-services">
-        <h2>Popular Service Categories</h2>
-        <div className="service-grid">
-          <div className="service-card">
-            <div className="service-card-content">
-              <FaShoppingCart className="service-icon" />
-              <h3>Procurement</h3>
-              <a href="/">Explore Procurement &raquo;</a>
-            </div>
-            <div className="service-card-background"></div>
-          </div>
-          <div className="service-card">
-            <div className="service-card-content">
-              <FaCloudUploadAlt className="service-icon" />
-              <h3>Cloud Services</h3>
-              <a href="/">Explore Cloud Services &raquo;</a>
-            </div>
-            <div className="service-card-background"></div>
-          </div>
-          <div className="service-card">
-            <div className="service-card-content">
-              <FaUserTie className="service-icon" />
-              <h3>Human Resource</h3>
-              <a href="/">Explore Human Resource &raquo;</a>
-            </div>
-            <div className="service-card-background"></div>
-          </div>
-          <div className="service-card">
-            <div className="service-card-content">
-              <FaLaptop className="service-icon" />
-              <h3>IT Services</h3>
-              <a href="/">Explore IT Services &raquo;</a>
-            </div>
-            <div className="service-card-background"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Why Choose PEM */}
-      <div className="why-choose-pem">
-        <h2>Why Choose PEM?</h2>
-        <div className="why-choose-pem-content">
-          <div className="why-choose-pem-item">
-            <FaHeart className="why-choose-icon" />
-            <h3>Rich Listing of Products / Services</h3>
-            <p>
-              Explore a wide range of products and services on our platform.
-            </p>
-          </div>
-          <div className="why-choose-pem-item">
-            <FaMoneyBillAlt className="why-choose-icon" />
-            <h3>Integrated Payment System</h3>
-            <p>Secure and seamless payment options for your convenience.</p>
-          </div>
-          <div className="why-choose-pem-item">
-            <FaShieldAlt className="why-choose-icon" />
-            <h3>Multiple Procurement Modes</h3>
-            <p>Choose from direct purchase, bidding, or reverse auction.</p>
-          </div>
-          <div className="why-choose-pem-item">
-            <FaListAlt className="why-choose-icon" />
-            <h3>Great Transparency and Speed</h3>
-            <p>Experience a transparent and efficient procurement process.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Customer Feedback */}
-      <div className="customer-feedback">
-        <h2>What Our Customers Say</h2>
-        <div className="feedback-grid">
-          <div className="feedback-card">
-            <div className="feedback-header">
-              <img src="testimonial1.jpg" alt="Customer 1" />
-              <div>
-                <h4>Ravi Kumar</h4>
-                <div className="feedback-rating">
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
+      {/* Featured Categories */}
+      <section className="featured-categories py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Explore Popular Categories</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {displayedCategories.map((category) => (
+              <div key={category._id} className="category-card bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 transform hover:-translate-y-2 hover:shadow-2xl">
+                <img src={category.categoryImage || "https://via.placeholder.com/400x300"} alt={category.name} className="w-full h-48 object-cover" />
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-3 text-gray-800">{category.name}</h3>
+                  <Link to={`/categories/${category._id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">
+                    Explore {category.name} &raquo;
+                  </Link>
                 </div>
               </div>
-            </div>
-            <p>
-              "I had a fantastic experience using PEM. The platform was user-friendly, and I quickly found the products I needed. Delivery was prompt and reliable."
-            </p>
+            ))}
           </div>
-          <div className="feedback-card">
-            <div className="feedback-header">
-              <img src="testimonial2.jpg" alt="Customer 2" />
-              <div>
-                <h4>Anita Sharma</h4>
-                <div className="feedback-rating">
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                </div>
-              </div>
+          {categories.length > 8 && (
+            <div className="text-center mt-12">
+              <button
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="bg-indigo-600 text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-700 transition duration-300 inline-flex items-center"
+              >
+                {showAllCategories ? "Show Less" : "Show More"}
+                <FaChevronDown className={`ml-2 transform ${showAllCategories ? "rotate-180" : ""} transition-transform duration-300`} />
+              </button>
             </div>
-            <p>
-              "PEM has revolutionized my business operations. The extensive range of services and the smooth procurement process have saved me significant time and effort."
-            </p>
-          </div>
-          <div className="feedback-card">
-            <div className="feedback-header">
-              <img src="testimonial3.jpg" alt="Customer 3" />
-              <div>
-                <h4>Vikram Mehta</h4>
-                <div className="feedback-rating">
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                  <i>&#9733;</i>
-                </div>
-              </div>
-            </div>
-            <p>
-              "I highly recommend PEM to anyone seeking a dependable and efficient procurement platform. Their customer support team has been incredibly responsive and helpful."
-            </p>
-          </div>
+          )}
         </div>
-      </div>
+      </section>
 
-      {/* Contact Section */}
-      <div className="contact-section">
-        <div className="container">
-          <h2>Get in Touch</h2>
-          <form>
-            <input type="text" placeholder="Name" />
-            <input type="email" placeholder="Email" />
-            <textarea placeholder="Message"></textarea>
-            <button type="submit">Submit</button>
-          </form>
-          
+      {/* Why Choose Us */}
+      <section className="why-choose-us py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-16 text-center text-gray-800">Why Choose Our E-Marketplace?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            <FeatureCard icon={FaGlobe} title="Global Reach" color="indigo" description="Connect with sellers and buyers from around the world, expanding your market opportunities." />
+            <FeatureCard icon={FaShieldAlt} title="Secure Transactions" color="green" description="Shop with confidence using our advanced security measures and buyer protection policies." />
+            <FeatureCard icon={FaTruck} title="Fast Shipping" color="yellow" description="Enjoy quick and reliable shipping options to get your products delivered on time." />
+            <FeatureCard icon={FaHeadset} title="24/7 Support" color="red" description="Our dedicated customer support team is always ready to assist you with any queries or concerns." />
+          </div>
         </div>
-      </div>
-      <Footer/>
+      </section>
+
+      {/* How It Works */}
+      <section className="how-it-works py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-16 text-center text-gray-800">How It Works</h2>
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-12 md:space-y-0 md:space-x-8">
+            <StepCard number={1} title="Browse Categories" description="Explore our wide range of product and service categories to find what you need." />
+            <StepCard number={2} title="Choose & Purchase" description="Select your desired items and complete the secure checkout process." />
+            <StepCard number={3} title="Receive & Enjoy" description="Get your products delivered to your doorstep and enjoy your purchase." />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="testimonials py-20 bg-indigo-600 text-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-16 text-center">What Our Customers Say</h2>
+          <Carousel
+            showArrows={true}
+            infiniteLoop={true}
+            showThumbs={false}
+            showStatus={false}
+            autoPlay={true}
+            interval={6100}
+          >
+            <TestimonialCard name="John Doe" image="https://via.placeholder.com/60x60" testimonial="Exceptional service and high-quality products. I'm a satisfied repeat customer!" />
+            <TestimonialCard name="Jane Smith" image="https://via.placeholder.com/60x60" testimonial="The procurement process was smooth and efficient. Highly recommended!" />
+            <TestimonialCard name="Mike Johnson" image="https://via.placeholder.com/60x60" testimonial="Great platform for both buyers and sellers. The customer support is outstanding!" />
+          </Carousel>
+        </div>
+      </section>
+
+      {/* Location-based Content */}
+      <section className="location-based py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Discover Local Treasures</h2>
+          <p className="text-xl text-center text-gray-600 mb-8">
+            Based on your location: {location.pathname === '/' ? 'Home' : location.pathname}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <LocationCard title="Local Sellers" description="Connect with top-rated sellers in your area for faster delivery and personalized service." />
+            <LocationCard title="Upcoming Events" description="Discover trade shows, pop-up markets, and other exciting e-commerce events near you." />
+            <LocationCard title="Regional Specialties" description="Explore unique products and services that are popular in your region." />
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="cta bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">Ready to Start Your E-Marketplace Journey?</h2>
+          <p className="text-xl mb-10">Join our platform today and discover amazing deals from sellers worldwide!</p>
+          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <Link to="/signup" className="bg-white text-indigo-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-100 transition duration-300">
+              Sign Up Now
+            </Link>
+            <Link to="/about" className="border-2 border-white text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-white hover:text-indigo-600 transition duration-300">
+              Learn More
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
-
   );
 };
 
+const FeatureCard = ({ icon: Icon, title, color, description }) => (
+  <div className="flex flex-col items-center text-center">
+    <div className={`bg-${color}-100 rounded-full p-6 mb-6`}>
+      <Icon className={`text-5xl text-${color}-600`} />
+    </div>
+    <h3 className="text-2xl font-semibold mb-4 text-gray-800">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
+
+const StepCard = ({ number, title, description }) => (
+  <div className="step flex flex-col items-center text-center max-w-xs">
+    <div className="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mb-6">{number}</div>
+    <h3 className="text-2xl font-semibold mb-4 text-gray-800">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
+
+const TestimonialCard = ({ name, image, testimonial }) => (
+  <div className="bg-white rounded-lg p-8 shadow-lg text-gray-800 mx-4">
+    <div className="flex items-center mb-6">
+      <img src={image} alt={name} className="w-16 h-16 rounded-full mr-4" />
+      <div>
+        <h4 className="font-semibold text-xl">{name}</h4>
+        <div className="flex text-yellow-400">
+          <FaStar /><FaStar /><FaStar /><FaStar /><FaStar />
+        </div>
+      </div>
+    </div>
+    <p className="text-gray-600 italic">"{testimonial}"</p>
+  </div>
+);
+
+const LocationCard = ({ title, description }) => (
+  <div className="bg-white rounded-lg shadow-lg p-6">
+    <h3 className="text-2xl font-semibold mb-4 text-gray-800">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
 
 export default HomePage;
