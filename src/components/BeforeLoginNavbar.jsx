@@ -6,7 +6,6 @@ import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import styled, { keyframes } from 'styled-components';
 
-
 const BASE_URL = "http://localhost:5002";
 
 const shakeAnimation = keyframes`
@@ -27,13 +26,10 @@ const BeforeLoginNavbar = () => {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cartClicked, setCartClicked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
   const categoryDropdownRef = useRef(null);
 
   const navigate = useNavigate();
-  const navbarRef = useRef(null);
   const searchInputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const timeoutRef = useRef(null);
@@ -64,7 +60,7 @@ const BeforeLoginNavbar = () => {
   const handleCategoryMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       setShowCategoriesDropdown(false);
-    }, 300); // 300ms delay before hiding the dropdown
+    }, 300);
   };
 
   const handleDropdownMouseEnter = () => {
@@ -73,26 +69,14 @@ const BeforeLoginNavbar = () => {
     }
   };
 
-  
-
-
-  const handleCategoryHover = () => {
-    setShowCategoriesDropdown(true);
-  };
-
-
   const fetchCategories = useCallback(async () => {
     if (categories.length === 0) {
       try {
-        setIsLoading(true);
         const response = await axios.get(`${BASE_URL}/api/categories`);
         setCategories(response.data);
-        setError(null);
       } catch (error) {
         console.error("Error fetching categories:", error);
-        setError("Failed to load categories. Please try again later.");
-      } finally {
-        setIsLoading(false);
+        toast.error("Failed to load categories. Please try again later.");
       }
     }
   }, [categories]);
@@ -133,18 +117,13 @@ const BeforeLoginNavbar = () => {
 
       const searchResults = { categories, products };
 
-      console.log("Search results:", searchResults); // Debug log
+      console.log("Search results:", searchResults);
 
       if (categories.length === 0 && products.length === 0) {
         toast.error(`No matching results found for "${searchTerm}"`);
       } else {
         navigate("/search-results", { 
           state: { searchResults, searchTerm } 
-        }, (error) => {
-          if (error) {
-            console.error("Navigation error:", error);
-            toast.error("An error occurred while navigating to search results");
-          }
         });
       }
     } catch (error) {
@@ -196,6 +175,15 @@ const BeforeLoginNavbar = () => {
   const handleCategoryClick = (categoryId) => {
     navigate(`/categories/${categoryId}`);
     setShowCategoriesDropdown(false);
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  };
+
+  const handleNavLinkClick = () => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -245,36 +233,36 @@ const BeforeLoginNavbar = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-6">
-        <div 
-          className="relative group"
-          ref={categoryDropdownRef}
-          onMouseEnter={handleCategoryMouseEnter}
-          onMouseLeave={handleCategoryMouseLeave}
-        >
-          <NavLink to="/AllCategoriesPage" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
-            Categories
-          </NavLink>
-          {showCategoriesDropdown && (
-            <ul 
-              className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50"
-              onMouseEnter={handleDropdownMouseEnter}
+            <div 
+              className="relative group"
+              ref={categoryDropdownRef}
+              onMouseEnter={handleCategoryMouseEnter}
               onMouseLeave={handleCategoryMouseLeave}
             >
-              {memoizedCategories.map((category) => (
-                <li key={category._id}>
-                  <button
-                    onClick={() => handleCategoryClick(category._id)}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    {category.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+              <NavLink to="/AllCategoriesPage" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+                Categories
+              </NavLink>
+              {showCategoriesDropdown && (
+                <ul 
+                  className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50"
+                  onMouseEnter={handleDropdownMouseEnter}
+                  onMouseLeave={handleCategoryMouseLeave}
+                >
+                  {memoizedCategories.map((category) => (
+                    <li key={category._id}>
+                      <button
+                        onClick={() => handleCategoryClick(category._id)}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {category.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-        <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
+            <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
               About
             </NavLink>
             <NavLink to="/contact" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
@@ -342,7 +330,11 @@ const BeforeLoginNavbar = () => {
         } md:hidden overflow-hidden transition-all duration-300 ease-in-out`}
       >
         <div className="px-2 pt-2 pb-3 space-y-1">
-          <NavLink to="/AllCategoriesPage" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
+          <NavLink 
+            to="/AllCategoriesPage" 
+            className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
+            onClick={handleNavLinkClick}
+          >
             Categories
           </NavLink>
           {memoizedCategories.map((category) => (
@@ -354,19 +346,42 @@ const BeforeLoginNavbar = () => {
               {category.name}
             </button>
           ))}
-           <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
-            About
-          </NavLink>
-          <NavLink to="/contact" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide">
+          <NavLink 
+            to="/about" 
+            className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
+            onClick={handleNavLinkClick}
+          >
+            About</NavLink>
+          <NavLink 
+            to="/contact" 
+            className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
+            onClick={handleNavLinkClick}
+          >
             Contact
           </NavLink>
-          <ShakeableNavLink to="/cart" shake={cartClicked} onClick={handleCartClick} className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center">
+          <ShakeableNavLink 
+            to="/cart" 
+            shake={cartClicked} 
+            onClick={(e) => {
+              handleCartClick(e);
+              handleNavLinkClick();
+            }} 
+            className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center"
+          >
             <FaShoppingCart className="mr-2 text-[#33DDFF]" /> Cart
           </ShakeableNavLink>
-          <NavLink to="/login" className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center">
+          <NavLink 
+            to="/login" 
+            className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center"
+            onClick={handleNavLinkClick}
+          >
             <FaUser className="mr-2 text-[#33DDFF]" /> Login
           </NavLink>
-          <NavLink to="/register" className="bg-[#33DDFF] text-white hover:bg-[#00BBDD] block px-3 py-2 rounded-md text-base font-semibold tracking-wide text-center transition-colors duration-200">
+          <NavLink 
+            to="/register" 
+            className="bg-[#33DDFF] text-white hover:bg-[#00BBDD] block px-3 py-2 rounded-md text-base font-semibold tracking-wide text-center transition-colors duration-200"
+            onClick={handleNavLinkClick}
+          >
             Sign Up
           </NavLink>
         </div>
