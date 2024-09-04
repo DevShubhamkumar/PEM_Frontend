@@ -68,6 +68,8 @@ const AddProduct = () => {
     if (Object.keys(validationErrors).length === 0) {
       try {
         const token = localStorage.getItem('token');
+        console.log('Token:', token); // Log token (remove in production)
+  
         const formData = new FormData();
         Object.keys(product).forEach(key => {
           if (key !== 'images') {
@@ -77,26 +79,43 @@ const AddProduct = () => {
         product.images.forEach(image => {
           formData.append('images', image);
         });
-
+  
+        // Log FormData contents
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+  
+        console.log('Sending request to:', `${BASE_URL}/api/products`);
+  
         const response = await axios.post(`${BASE_URL}/api/products`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}`,
           },
         });
-
+  
         console.log('Product added successfully:', response.data);
         toast.success('Product added successfully');
         resetForm();
       } catch (error) {
-        console.error('Error adding product:', error);
+        console.error('Error adding product:', error.response || error);
         toast.error(error.response?.data?.message || 'Failed to add product');
+        
+        // Additional error logging
+        if (error.response) {
+          console.log('Error response status:', error.response.status);
+          console.log('Error response data:', error.response.data);
+        } else if (error.request) {
+          console.log('No response received:', error.request);
+        } else {
+          console.log('Error setting up request:', error.message);
+        }
       }
     } else {
       setErrors(validationErrors);
     }
   };
-
+  
   const resetForm = () => {
     setProduct({
       name: '',

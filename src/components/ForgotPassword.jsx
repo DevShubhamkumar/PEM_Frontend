@@ -162,7 +162,6 @@ const ForgotPassword = () => {
     setPasswordError('');
     return true;
   };
-
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!validateEmail(email)) return;
@@ -183,7 +182,7 @@ const ForgotPassword = () => {
     if (!validatePassword(newPassword)) return;
 
     try {
-      const response = await axios.post('${BASE_URL}/api/reset-password', {
+      const response = await axios.post(`${BASE_URL}/api/reset-password`, {
         email,
         resetToken: otp,
         newPassword

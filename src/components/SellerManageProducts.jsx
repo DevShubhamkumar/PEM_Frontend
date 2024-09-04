@@ -1,9 +1,10 @@
+// Export the BASE_URL
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { BASE_URL } from '../api';
-
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
@@ -191,6 +192,7 @@ const ExpandableText = styled.span`
     text-decoration: underline;
   }
 `;
+
 const SellerManageProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -348,7 +350,7 @@ const SellerManageProducts = () => {
   const renderExpandableText = (text, maxLength, id, field) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
-    
+
     return expandedFields[id]?.[field] ? (
       <>
         {text}{' '}
@@ -373,7 +375,6 @@ const SellerManageProducts = () => {
   if (error) {
     return <div>Error: {error}</div>;
   }
-
   return (
     <Container>
       <Header>Manage Products</Header>

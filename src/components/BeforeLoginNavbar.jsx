@@ -6,7 +6,7 @@ import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import styled, { keyframes } from 'styled-components';
 
-const BASE_URL = "http://localhost:5002";
+import { BASE_URL } from "../api";
 
 const shakeAnimation = keyframes`
   0% { transform: translateX(0); }
@@ -26,6 +26,8 @@ const BeforeLoginNavbar = () => {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [cartClicked, setCartClicked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
   const categoryDropdownRef = useRef(null);
 
@@ -72,11 +74,15 @@ const BeforeLoginNavbar = () => {
   const fetchCategories = useCallback(async () => {
     if (categories.length === 0) {
       try {
+        setIsLoading(true);
         const response = await axios.get(`${BASE_URL}/api/categories`);
         setCategories(response.data);
+        setError(null);
       } catch (error) {
         console.error("Error fetching categories:", error);
-        toast.error("Failed to load categories. Please try again later.");
+        setError("Failed to load categories. Please try again later.");
+      } finally {
+        setIsLoading(false);
       }
     }
   }, [categories]);
@@ -102,18 +108,13 @@ const BeforeLoginNavbar = () => {
     if (!searchTerm.trim()) return;
 
     try {
-      const categoriesResponse = await axios.get(
-        `${BASE_URL}/api/categories/search?q=${searchTerm}`
-      );
-      const categories = categoriesResponse.data;
+      const [categoriesResponse, productsResponse] = await Promise.all([
+        axios.get(`${BASE_URL}/api/categories/search?q=${searchTerm}`),
+        axios.get(`${BASE_URL}/api/search?q=${searchTerm}`)
+      ]);
 
-      let products = [];
-      if (categories.length > 0) {
-        const productsResponse = await axios.get(
-          `${BASE_URL}/api/products?category=${categories[0]._id}`
-        );
-        products = productsResponse.data;
-      }
+      const categories = categoriesResponse.data;
+      const products = productsResponse.data;
 
       const searchResults = { categories, products };
 
@@ -191,6 +192,7 @@ const BeforeLoginNavbar = () => {
       <Toaster />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
+          {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex flex-col items-start">
               <span className="text-4xl font-black tracking-wider font-arial" style={{ color: "#33DDFF", fontWeight: "900" }}>
@@ -202,6 +204,7 @@ const BeforeLoginNavbar = () => {
             </Link>
           </div>
 
+          {/* Search bar for desktop */}
           <div className="hidden md:block flex-grow max-w-2xl mx-4">
             <form onSubmit={handleSearch} className="relative">
               <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
@@ -232,6 +235,7 @@ const BeforeLoginNavbar = () => {
             </form>
           </div>
 
+          {/* Navigation links for desktop */}
           <div className="hidden md:flex items-center space-x-6">
             <div 
               className="relative group"
@@ -278,6 +282,8 @@ const BeforeLoginNavbar = () => {
               Sign Up
             </NavLink>
           </div>
+
+          {/* Mobile menu button */}
           <div className="flex md:hidden">
             <button
               onClick={toggleMenu}
@@ -293,6 +299,7 @@ const BeforeLoginNavbar = () => {
         </div>
       </div>
 
+      {/* Mobile search bar */}
       {isMobile && (
         <div className="md:hidden px-4 py-2">
           <form onSubmit={handleSearch} className="relative">
@@ -324,6 +331,7 @@ const BeforeLoginNavbar = () => {
         </div>
       )}
 
+      {/* Mobile menu */}
       <div
         className={`${
           isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
@@ -340,7 +348,10 @@ const BeforeLoginNavbar = () => {
           {memoizedCategories.map((category) => (
             <button
               key={category._id}
-              onClick={() => handleCategoryClick(category._id)}
+              onClick={() => {
+                handleCategoryClick(category._id);
+                handleNavLinkClick();
+              }}
               className="text-gray-600 hover:text-[#33DDFF] block w-full text-left px-3 py-2 rounded-md text-sm font-medium tracking-wide ml-4"
             >
               {category.name}
@@ -351,7 +362,8 @@ const BeforeLoginNavbar = () => {
             className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
             onClick={handleNavLinkClick}
           >
-            About</NavLink>
+            About
+          </NavLink>
           <NavLink 
             to="/contact" 
             className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
@@ -364,7 +376,7 @@ const BeforeLoginNavbar = () => {
             shake={cartClicked} 
             onClick={(e) => {
               handleCartClick(e);
-              handleNavLinkClick();
+              handleNavLinkClick(e);
             }} 
             className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center"
           >
