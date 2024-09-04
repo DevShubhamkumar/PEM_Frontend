@@ -88,18 +88,17 @@ const ProductDetails = styled.div`
     margin: 5px 0;
   }
 `;
-
 const AdminManageOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
   const fetchOrders = async () => {
     try {
-      const serverUrl = '${BASE_URL}';
       const token = localStorage.getItem('token');
 
       if (!token) {
@@ -107,7 +106,7 @@ const AdminManageOrdersPage = () => {
         return;
       }
 
-      const response = await axios.get(`${serverUrl}/api/orders`, {
+      const response = await axios.get(`${BASE_URL}/api/orders`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -120,21 +119,19 @@ const AdminManageOrdersPage = () => {
     }
   };
 
-
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      const serverUrl = '${BASE_URL}';
       const token = localStorage.getItem('token');
-  
+
       if (!token) {
         console.error('Token not found in localStorage');
         return;
       }
-  
+
       console.log('Sending PUT request to update order status:', orderId, newStatus);
-  
+
       const response = await axios.put(
-        `${serverUrl}/api/orders/status`,
+        `${BASE_URL}/api/orders/status`,
         { orderId, deliveryStatus: newStatus },
         {
           headers: {
@@ -142,10 +139,9 @@ const AdminManageOrdersPage = () => {
           },
         }
       );
-  
+
       console.log('Order status update response:', response.data);
-  
-      // Update the order status in the local state
+
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order._id === orderId ? { ...order, deliveryStatus: newStatus } : order

@@ -1,4 +1,3 @@
-// Admin manage products
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -21,16 +20,16 @@ const AdminManageProducts = () => {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching data with token:', token); // Add this line
-  
-      const response = await axios.get('${BASE_URL}/api/admin/data', {
+      console.log('Fetching data with token:', token);
+
+      const response = await axios.get(`${BASE_URL}/api/admin/data`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
-      console.log('Response from server:', response.data); // Add this line
-  
+
+      console.log('Response from server:', response.data);
+
       setProducts(response.data.products);
       setCategories(response.data.categories);
       setItemTypes(response.data.itemTypes);
@@ -42,7 +41,12 @@ const AdminManageProducts = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${BASE_URL}/api/products/${id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${BASE_URL}/api/products/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setProducts(products.filter((product) => product._id !== id));
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -51,27 +55,27 @@ const AdminManageProducts = () => {
 
   const toggleProductStatus = async (id, isEnabled) => {
     try {
-      const token = localStorage.getItem('token'); // Get the token from localStorage or wherever you store it
+      const token = localStorage.getItem('token');
       const response = await axios.put(
         `${BASE_URL}/api/products/${id}`,
         {
-          isActive: isEnabled, // Send the isActive property
-          // Include any other necessary product properties here
+          isActive: isEnabled,
         },
         {
           headers: {
-            'Authorization': `Bearer ${token}` // Include the token in the Authorization header
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-  
-      console.log(`Product ${id} is ${isEnabled ? 'enabled' : 'disabled'}`); // Log the product status
-  
+
+      console.log(`Product ${id} is ${isEnabled ? 'enabled' : 'disabled'}`);
+
       setProducts(products.map((product) => (product._id === id ? response.data : product)));
     } catch (error) {
       console.error('Error toggling product status:', error);
     }
   };
+
   const filteredProducts = products.filter((product) => {
     const categoryMatch = filterCategory === '' || product.category.toString() === filterCategory;
     const itemTypeMatch = filterItemType === '' || product.itemType.toString() === filterItemType;
@@ -145,7 +149,7 @@ const AdminManageProducts = () => {
         </select>
       </div>
 
-      <table>
+       <table>
         <thead>
           <tr>
             <th>Name</th>
@@ -191,4 +195,4 @@ const AdminManageProducts = () => {
   );
 };
 
-export default AdminManageProducts; 
+export default AdminManageProducts;

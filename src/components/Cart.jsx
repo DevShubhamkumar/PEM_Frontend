@@ -1,25 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import styled, { css } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast, Toaster } from 'react-hot-toast';
 import Footer from './Footer';
 import { BASE_URL } from '../api';
-
-const sizes = {
-  mobile: '480px',
-  tablet: '768px',
-  laptop: '1024px',
-};
-
-const media = Object.keys(sizes).reduce((acc, label) => {
-  acc[label] = (...args) => css`
-    @media (max-width: ${sizes[label]}) {
-      ${css(...args)};
-    }
-  `;
-  return acc;
-}, {});
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -27,59 +12,49 @@ const CartPage = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCartData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const fetchCartData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const storedCart = localStorage.getItem('cartData');
+      const storedTimestamp = localStorage.getItem('cartTimestamp');
+      const currentTime = new Date().getTime();
+
+      // Check if stored cart exists and is less than 5 minutes old
+      if (storedCart && storedTimestamp && (currentTime - parseInt(storedTimestamp)) < 300000) {
+        setCartItems(JSON.parse(storedCart));
+      } else {
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token);
-    
-        const serverUrl = `${BASE_URL}`;
-        const response = await axios.get(`${serverUrl}/api/cart`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await axios.get(`${BASE_URL}/api/cart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const validCartItems = response.data.filter((item) => item.productId !== null && item.productId !== undefined);
+        const cartItemsWithFullUrls = validCartItems.map((item) => ({
+          ...item,
+          productId: {
+            ...item.productId,
+            images: item.productId.images.map((imagePath) => `${BASE_URL}/${imagePath}`),
           },
-        });
-    
-        console.log('Response status:', response.status);
-        console.log('Response data:', response.data);
-    
-        const cartItems = response.data;
-    
-        // Filter out cart items with null or undefined productId
-        const validCartItems = cartItems.filter((item) => item.productId !== null && item.productId !== undefined);
-    
-        const cartItemsWithFullUrls = validCartItems.map((item) => {
-          const images = item.productId.images.map((imagePath) => `${serverUrl}/${imagePath}`);
-    
-          let sellerName = 'Unknown Seller';
-          if (item.productId.seller && item.productId.seller.name) {
-            sellerName = item.productId.seller.name;
-          }
-    
-          return {
-            ...item,
-            productId: {
-              ...item.productId,
-              images,
-            },
-            sellerName,
-          };
-        });
-    
+          sellerName: item.productId.seller?.name || 'Unknown Seller',
+        }));
+
         setCartItems(cartItemsWithFullUrls);
-      } catch (error) {
-        console.error('Error fetching cart data:', error);
-        toast.error('An error occurred while fetching the cart data.');
-      } finally {
-        setIsLoading(false);
+        localStorage.setItem('cartData', JSON.stringify(cartItemsWithFullUrls));
+        localStorage.setItem('cartTimestamp', currentTime.toString());
       }
-    };
-    fetchCartData();
+    } catch (error) {
+      console.error('Error fetching cart data:', error);
+      setError('An error occurred while fetching the cart data.');
+      toast.error('Failed to load cart data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const serverUrl = '${BASE_URL}';
+  useEffect(() => {
+    fetchCartData();
+  }, [fetchCartData]);
 
   const getDiscountedPrice = (price, discount) => {
     return price - (price * discount) / 100;
@@ -87,20 +62,17 @@ const CartPage = () => {
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => {
-      const { productId, quantity } = item;
-      const price = productId ? productId.price : 0;
-      const discount = productId && productId.discount ? productId.discount : 0;
-      const discountedPrice = price - (price * discount) / 100;
-      return total + discountedPrice * quantity;
+      const price = item.productId?.price || 0;
+      const discount = item.productId?.discount || 0;
+      return total + getDiscountedPrice(price, discount) * item.quantity;
     }, 0);
   };
-  
+
   const getTotalDiscount = () => {
     return cartItems.reduce((total, item) => {
-      const { productId, quantity } = item;
-      const price = productId ? productId.price : 0;
-      const discount = productId && productId.discount ? productId.discount : 0;
-      return total + (price * quantity * discount) / 100;
+      const price = item.productId?.price || 0;
+      const discount = item.productId?.discount || 0;
+      return total + (price * item.quantity * discount) / 100;
     }, 0);
   };
 
@@ -112,14 +84,10 @@ const CartPage = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${serverUrl}/api/cart/${cartItemId}`,
+      await axios.put(
+        `${BASE_URL}/api/cart/${cartItemId}`,
         { quantity: newQuantity },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setCartItems((prevCartItems) =>
@@ -127,47 +95,57 @@ const CartPage = () => {
           item._id === cartItemId ? { ...item, quantity: newQuantity } : item
         )
       );
+
+      // Update localStorage
+      const updatedCart = cartItems.map((item) =>
+        item._id === cartItemId ? { ...item, quantity: newQuantity } : item
+      );
+      localStorage.setItem('cartData', JSON.stringify(updatedCart));
+
+      toast.success('Cart updated successfully.');
     } catch (error) {
       console.error('Error updating cart item quantity:', error);
-      toast.error('An error occurred while updating the cart item quantity.');
+      toast.error('Failed to update cart. Please try again.');
     }
   };
 
   const handleRemoveCartItem = async (cartItemId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${serverUrl}/api/cart/${cartItemId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await axios.delete(`${BASE_URL}/api/cart/${cartItemId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setCartItems((prevCartItems) =>
-        prevCartItems.filter((item) => item._id !== cartItemId)
-      );
-      toast.success('Cart item removed successfully.');
+
+      const updatedCartItems = cartItems.filter((item) => item._id !== cartItemId);
+      setCartItems(updatedCartItems);
+
+      // Update localStorage
+      localStorage.setItem('cartData', JSON.stringify(updatedCartItems));
+
+      toast.success('Item removed from cart.');
     } catch (error) {
       console.error('Error removing cart item:', error);
-      toast.error('An error occurred while removing the cart item.');
+      toast.error('Failed to remove item. Please try again.');
     }
   };
 
+  const handlePlaceOrder = () => {
+    navigate('/user-details');
+  };
+
   if (isLoading) {
-    return <LoadingContainer>Loading...</LoadingContainer>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <ErrorContainer>{error}</ErrorContainer>;
-  }
-
-  if (cartItems.length === 0) {
     return (
-      <CartContainer>
-        <Toaster />
-        <CartHeader>
-          <h2>Cart</h2>
-        </CartHeader>
-        <EmptyCartMessage>Your cart is empty.</EmptyCartMessage>
-      </CartContainer>
+      <div className="flex justify-center items-center h-screen text-red-600 text-xl">
+        {error}
+      </div>
     );
   }
 
@@ -175,342 +153,138 @@ const CartPage = () => {
   const totalAmount = getTotalPrice() + deliveryCharges;
   const totalSavings = getTotalDiscount() + (getTotalPrice() > 800 ? 40 : 0);
 
-  const handlePlaceOrder = () => {
-    navigate('/user-details');
-  };
-
   return (
-    <CartContainer>
+    <div className="cart-page w-full bg-gray-100">
       <Toaster />
-      <CartHeader>
-        <h2>Cart</h2>
-      </CartHeader>
-      <CartBody>
-        <CartItemList>
-          {cartItems.map((item) => (
-            <CartItem key={item._id}>
-              <ImageContainer>
-                {item.productId.images && item.productId.images.length > 0 ? (
-                  <ProductImage src={item.productId.images[0]} alt={item.productId.name} />
-                ) : (
-                  <ProductImage src="https://via.placeholder.com/150" alt={item.productId.name} />
-                )}
-              </ImageContainer>
-              <ProductDetails>
-                <ProductName>{item.productId.name}</ProductName>
-                <ProductDescription>{item.productId.description}</ProductDescription>
-                <SellerName>Sold by: {item.sellerName}</SellerName>
-                <PriceDetails>
-                  <OriginalPrice>₹{item.productId.price}</OriginalPrice>
-                  <Discount>
-                    {item.productId.discount}% off
-                    <DiscountAmount>
-                      (₹{((item.productId.price * item.productId.discount) / 100).toFixed(2)})
-                    </DiscountAmount>
-                  </Discount>
-                  <DiscountedPrice>
-                    ₹{(item.productId.price - (item.productId.price * item.productId.discount) / 100).toFixed(2)}
-                  </DiscountedPrice>
-                </PriceDetails>
-                <QuantityControlContainer>
-                  <QuantityControl>
-                    <QuantityButton
-                      onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
-                      disabled={item.quantity === 1}
-                    >
-                      -
-                    </QuantityButton>
-                    <Quantity>{item.quantity}</Quantity>
-                    <QuantityButton onClick={() => handleQuantityChange(item._id, item.quantity + 1)}>
-                      +
-                    </QuantityButton>
-                  </QuantityControl>
-                  <RemoveButton onClick={() => handleRemoveCartItem(item._id)}>Remove</RemoveButton>
-                </QuantityControlContainer>
-              </ProductDetails>
-            </CartItem>
-          ))}
-        </CartItemList>
-        <OrderSummaryContainer>
-          <OrderSummary>
-            <h3>Order Summary</h3>
-            <SummaryItem>
-              <span>Total Items ({cartItems.reduce((total, item) => total + item.quantity, 0)})</span>
-              <span>₹{getTotalPrice().toFixed(2)}</span>
-            </SummaryItem>
-            <SummaryItem>
-              <span>Total Discount</span>
-              <DiscountAmount>-₹{getTotalDiscount().toFixed(2)}</DiscountAmount>
-            </SummaryItem>
-            <SummaryItem>
-              <span>Delivery Charges</span>
-              <span>₹{deliveryCharges.toFixed(2)}</span>
-            </SummaryItem>
-            <SummaryTotal>
-              <span>Total</span>
-              <span>₹{totalAmount.toFixed(2)}</span>
-            </SummaryTotal>
-            <Savings>
-              <span>You have saved ₹{totalSavings.toFixed(2)}!</span>
-            </Savings>
-            <SecurityMessage>
-              **Safe and Secure Payments. Easy returns. 100% Authentic products.
-            </SecurityMessage>
-            <PlaceOrderButton onClick={handlePlaceOrder}>Place Order</PlaceOrderButton>
-          </OrderSummary>
-        </OrderSummaryContainer>
-      </CartBody>
-    </CartContainer>
+      
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Your Shopping Cart</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Review and manage your selected items</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
+
+      {/* Cart Items */}
+      <section className="cart-items py-20">
+        <div className="container mx-auto px-4">
+          {cartItems.length === 0 ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
+              <Link to="/" className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                Continue Shopping
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <AnimatePresence>
+                    {cartItems.map((item) => (
+                      <motion.div
+                        key={item._id}
+                        className="bg-white rounded-lg shadow-md overflow-hidden mb-6"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <div className="flex flex-col md:flex-row">
+                          <div className="md:w-1/3">
+                            <img
+                              src={item.productId.images[0] || "https://via.placeholder.com/300"}
+                              alt={item.productId.name}
+                              className="w-full h-48 object-cover"
+                            />
+                          </div>
+                          <div className="md:w-2/3 p-6">
+                            <h3 className="text-xl font-semibold mb-2">{item.productId.name}</h3>
+                            <p className="text-gray-600 mb-4">{item.productId.description}</p>
+                            <p className="text-sm text-gray-500 mb-2">Sold by: {item.sellerName}</p>
+                            <div className="flex items-center mb-4">
+                              <span className="text-2xl font-bold mr-2">
+                                ₹{getDiscountedPrice(item.productId.price, item.productId.discount).toFixed(2)}
+                              </span>
+                              <span className="text-sm text-gray-500 line-through mr-2">₹{item.productId.price}</span>
+                              <span className="text-sm text-green-600">{item.productId.discount}% off</span>
+                            </div>
+                            <div className="flex items-center">
+                              <button
+                                onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
+                                className="bg-gray-200 text-gray-800 py-1 px-3 rounded-l"
+                              >
+                                -
+                              </button>
+                              <span className="bg-gray-100 py-1 px-4">{item.quantity}</span>
+                              <button
+                                onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
+                                className="bg-gray-200 text-gray-800 py-1 px-3 rounded-r"
+                              >
+                                +
+                              </button>
+                              <button
+                                onClick={() => handleRemoveCartItem(item._id)}
+                                className="ml-4 text-red-600 hover:text-red-800"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
+                  <h3 className="text-xl font-semibold mb-4">Order Summary</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>₹{getTotalPrice().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span>
+                      <span>-₹{getTotalDiscount().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Charges</span>
+                      <span>₹{deliveryCharges.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total</span>
+                        <span>₹{totalAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-green-600 text-sm mt-4">You save ₹{totalSavings.toFixed(2)} on this order</p>
+                  <button
+                    onClick={handlePlaceOrder}
+                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-full mt-6 hover:bg-indigo-700 transition duration-300"
+                  >
+                    Proceed to Checkout
+                  </button>
+                  <p className="text-xs text-gray-500 mt-4 text-center">
+                    Safe and Secure Payments. Easy returns. 100% Authentic products.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 };
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 24px;
-`;
-
-const ErrorContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 24px;
-  color: red;
-`;
-
-const CartContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-`;
-
-const CartHeader = styled.div`
-  text-align: center;
-  margin-bottom: 20px;
-`;
-
-const CartBody = styled.div`
-  display: flex;
-  justify-content: space-between;
-  
-  ${media.tablet`
-    flex-direction: column;
-  `}
-`;
-
-const CartItemList = styled.div`
-  width: 70%;
-  
-  ${media.tablet`
-    width: 100%;
-    margin-bottom: 20px;
-  `}
-`;
-
-const CartItem = styled.div`
-  display: flex;
-  margin-bottom: 20px;
-  border: 1px solid #ccc;
-  padding: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  
-  ${media.mobile`
-    flex-direction: column;
-  `}
-`;
-
-const ImageContainer = styled.div`
-  width: 150px;
-  height: 150px;
-  margin-right: 20px;
-  
-  ${media.mobile`
-    width: 100%;
-    height: auto;
-    margin-right: 0;
-    margin-bottom: 20px;
-  `}
-`;
-
-const ProductImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px;
-`;
-
-const ProductDetails = styled.div`
-  flex: 1;
-`;
-
-const ProductName = styled.h3`
-  margin-top: 0;
-`;
-
-const ProductDescription = styled.p`
-  margin-bottom: 10px;
-`;
-
-const SellerName = styled.p`
-  margin-bottom: 10px;
-`;
-
-const PriceDetails = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-const OriginalPrice = styled.span`
-  margin-right: 10px;
-  text-decoration: line-through;
-  color: #888;
-`;
-
-const Discount = styled.span`
-  color: green;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-`;
-
-const DiscountAmount = styled.span`
-  margin-left: 5px;
-`;
-
-const DiscountedPrice = styled.span`
-  font-weight: bold;
-  margin-left: 10px;
-`;
-
-const QuantityControlContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-const QuantityControl = styled.div`
-  display: flex;
-  align-items: center;
-  margin-right: 20px;
-`;
-
-const QuantityButton = styled.button`
-  padding: 5px 15px;
-  background-color: #000;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  margin: 0 5px;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: #333;
-  }
-
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-
-  ${media.mobile`
-    padding: 10px 20px;
-  `}
-`;
-
-const Quantity = styled.span`
-  padding: 0 10px;
-  font-size: 16px;
-`;
-
-const RemoveButton = styled.button`
-  padding: 5px 10px;
-  background-color: #ff4d4d;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: #ff3333;
-  }
-
-  ${media.mobile`
-    padding: 10px 15px;
-  `}
-`;
-
-const OrderSummaryContainer = styled.div`
-  position: sticky;
-  top: 20px;
-  height: calc(100vh - 40px);
-  width: 28%;
-  
-  ${media.tablet`
-    position: static;
-    width: 100%;
-    height: auto;
-  `}
-`;
-
-const OrderSummary = styled.div`
-  width: 100%;
-  border: 1px solid #ccc;
-  padding: 40px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-`;
-
-const SummaryItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-`;
-
-const SummaryTotal = styled(SummaryItem)`
-  font-weight: bold;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
-  margin-top: 10px;
-`;
-
-const Savings = styled.div`
-  color: green;
-  font-weight: bold;
-  margin-top: 10px;
-`;
-
-const SecurityMessage = styled.p`
-  margin-top: 20px;
-  font-style: italic;
-  font-size: 14px;
-  color: #666;
-`;
-const PlaceOrderButton = styled.button`
-  width: 100%;
-  padding: 15px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  margin-top: 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-
-  &:hover {
-    background-color: #45a049;
-  }
-`;
-
-const EmptyCartMessage = styled.p`
-  text-align: center;
-  font-size: 18px;
-  color: #666;
-`;
 
 export default CartPage;

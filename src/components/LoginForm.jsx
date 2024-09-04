@@ -4,9 +4,7 @@ import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Footer from './Footer';
 import { BASE_URL } from '../api';
-
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -149,10 +147,8 @@ const ForgotPasswordLink = styled(Link)`
     text-decoration: underline;
   }
 `;
-
-
 const authAxios = axios.create({
-  baseURL: `${BASE_URL}`,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -173,14 +169,17 @@ const LoginForm = ({ onLogin }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
+      console.log('Attempting login with:', { email, password });
       const response = await authAxios.post(`/api/login`, { email, password });
+      console.log('Login response:', response.data);
+
       if (response.data.token) {
         const { token, userType, userData } = response.data;
         const role = userType;
         const data = userData;
         onLogin(role, data, token);
-        setError('');
         localStorage.setItem('token', token);
         localStorage.setItem('userRole', userType);
         localStorage.setItem('userId', userData._id);
@@ -195,18 +194,33 @@ const LoginForm = ({ onLogin }) => {
           toast.success('Login successful!');
         } else if (role === 'admin') {
           navigate('/admin/dashboard');
-          toast.success('Login successful!');
+          toast.success('Admin login successful!');
         }
       } else {
-        setError(response.data.message);
-        toast.error(response.data.message);
+        setError('Login failed. Please check your credentials.');
+        toast.error('Login failed. Please check your credentials.');
       }
     } catch (error) {
-      setError(`Login error: ${error.response?.data?.message || 'Network Error'}`);
-      toast.error(`Login error: ${error.response?.data?.message || 'Network Error'}`);
       console.error('Login error:', error);
+      console.error('Error response:', error.response);
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        setError(`Login failed: ${error.response.data.message || 'Unknown error'}`);
+        toast.error(`Login failed: ${error.response.data.message || 'Unknown error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        setError('No response received from server. Please try again later.');
+        toast.error('No response received from server. Please try again later.');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        setError('An error occurred during login. Please try again.');
+        toast.error('An error occurred during login. Please try again.');
+      }
     }
   };
+
   return (
     <LoginContainer>
       <GlobalStyle />

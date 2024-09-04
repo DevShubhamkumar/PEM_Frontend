@@ -3,17 +3,15 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import Footer from './Footer';
 import { BASE_URL } from '../api';
 
 const Container = styled.div`
   max-width: 800px;
-  margin: 0 auto;
+  margin: 40px auto;
   padding: 40px;
   background-color: #f8f8f8;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 40px;
 `;
 
 const Title = styled.h2`
@@ -85,6 +83,7 @@ const NoCommentsMessage = styled.p`
 const AdminUserProfileActivity = () => {
   const { userId, userType } = useParams();
   const [comments, setComments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchUserComments();
@@ -92,6 +91,7 @@ const AdminUserProfileActivity = () => {
 
   const fetchUserComments = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(`${BASE_URL}/api/admin/${userType}/${userId}/comments`, {
         headers: {
@@ -102,13 +102,15 @@ const AdminUserProfileActivity = () => {
     } catch (error) {
       console.error('Error fetching user comments:', error);
       toast.error('An error occurred while fetching user comments.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEnableDisableComment = async (commentId, isActive) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
+      await axios.put(
         `${BASE_URL}/api/comments/${commentId}/toggle`,
         { isActive: !isActive },
         {
@@ -133,6 +135,10 @@ const AdminUserProfileActivity = () => {
       }
     }
   };
+
+  if (isLoading) {
+    return <Container><Title>Loading...</Title></Container>;
+  }
 
   return (
     <Container>

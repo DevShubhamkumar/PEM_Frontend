@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Admin.css';
-import Footer from './Footer';
-import { BASE_URL } from '../api';
+
+export const BASE_URL = 'https://pem-backend.onrender.com';
 
 const UserProfileControl = () => {
   const navigate = useNavigate();
@@ -15,12 +15,12 @@ const UserProfileControl = () => {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem('token');
-        let url = '${BASE_URL}/api/admin_users';
+        let url = `${BASE_URL}/api/admin_users`;
 
         if (userType === 'buyer') {
-          url = '${BASE_URL}/api/admin_buyers';
+          url = `${BASE_URL}/api/admin_buyers`;
         } else if (userType === 'seller') {
-          url = '${BASE_URL}/api/admin_sellers';
+          url = `${BASE_URL}/api/admin_sellers`;
         }
 
         const response = await fetch(url, {
@@ -48,9 +48,6 @@ const UserProfileControl = () => {
 
   const toggleUserStatus = async (userId, userType, isActive) => {
     try {
-      const payload = JSON.stringify({ isActive: !isActive });
-      console.log('Request payload:', payload);
-
       const response = await fetch(`${BASE_URL}/api/${userType}/${userId}/status`, {
         method: 'PUT',
         headers: {
@@ -64,7 +61,6 @@ const UserProfileControl = () => {
         throw new Error('Failed to update user status');
       }
 
-      // Update the users state with the updated user status
       const updatedUsers = users.map((user) => {
         if (user._id === userId) {
           return {
@@ -83,6 +79,10 @@ const UserProfileControl = () => {
     }
   };
 
+  const handleViewActivity = (user) => {
+    navigate(`/admin/user-activity/${user.userType}/${user._id}`);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -90,12 +90,6 @@ const UserProfileControl = () => {
   if (error) {
     return <div>Error: {error}</div>;
   }
-
-  const handleViewActivity = (user) => {
-    console.log('User object:', user);
-    navigate(`/admin/user-activity/${user.userType}/${user._id}`);
-    console.log('Navigating to:', `/admin/user-activity/${user.userType}/${user._id}`);
-  };
 
   return (
     <div>
@@ -143,9 +137,9 @@ const UserProfileControl = () => {
                   </button>
                 </td>
                 <td>
-                <button onClick={() => handleViewActivity(user)}>
-      View Activity
-    </button>
+                  <button onClick={() => handleViewActivity(user)}>
+                    View Activity
+                  </button>
                 </td>
               </tr>
             ))}

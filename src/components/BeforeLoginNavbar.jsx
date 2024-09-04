@@ -106,35 +106,43 @@ const BeforeLoginNavbar = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
-
+  
+    let categories = [];
+    let products = [];
+    let hasError = false;
+  
     try {
-      const [categoriesResponse, productsResponse] = await Promise.all([
-        axios.get(`${BASE_URL}/api/categories/search?q=${searchTerm}`),
-        axios.get(`${BASE_URL}/api/search?q=${searchTerm}`)
-      ]);
-
-      const categories = categoriesResponse.data;
-      const products = productsResponse.data;
-
-      const searchResults = { categories, products };
-
-      console.log("Search results:", searchResults);
-
-      if (categories.length === 0 && products.length === 0) {
-        toast.error(`No matching results found for "${searchTerm}"`);
-      } else {
-        navigate("/search-results", { 
-          state: { searchResults, searchTerm } 
-        });
-      }
+      const categoriesResponse = await axios.get(`${BASE_URL}/api/categories/search?q=${searchTerm}`);
+      categories = categoriesResponse.data;
     } catch (error) {
-      console.error("Error searching products and categories:", error);
-      toast.error("An error occurred while searching");
+      console.error("Error searching categories:", error);
+      toast.error("An error occurred while searching categories");
+      hasError = true;
     }
-
+  
+    try {
+      const productsResponse = await axios.get(`${BASE_URL}/api/search?q=${searchTerm}`);
+      products = productsResponse.data;
+    } catch (error) {
+      console.error("Error searching products:", error);
+      toast.error("An error occurred while searching products");
+      hasError = true;
+    }
+  
+    const searchResults = { categories, products };
+    console.log("Search results:", searchResults);
+  
+    if (categories.length === 0 && products.length === 0 && !hasError) {
+      toast.error(`No matching results found for "${searchTerm}"`);
+    } else if (categories.length > 0 || products.length > 0) {
+      navigate("/search-results", { 
+        state: { searchResults, searchTerm } 
+      });
+    }
+  
     setIsOpen(false);
   };
-
+  
   const handleSearchInputChange = async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -191,11 +199,11 @@ const BeforeLoginNavbar = () => {
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <Toaster />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex flex-col items-start">
-              <span className="text-4xl font-black tracking-wider font-arial" style={{ color: "#33DDFF", fontWeight: "900" }}>
+              <span className="text-2xl md:text-3xl font-black tracking-wider font-arial" style={{ color: "#33DDFF", fontWeight: "900" }}>
                 PEM
               </span>
               <span className="text-xs text-gray-500 font-medium -mt-1">
@@ -205,7 +213,7 @@ const BeforeLoginNavbar = () => {
           </div>
 
           {/* Search bar for desktop */}
-          <div className="hidden md:block flex-grow max-w-2xl mx-4">
+          <div className="hidden md:block flex-grow max-w-xl mx-4">
             <form onSubmit={handleSearch} className="relative">
               <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
                 <input
@@ -213,9 +221,9 @@ const BeforeLoginNavbar = () => {
                   value={searchTerm}
                   onChange={handleSearchInputChange}
                   placeholder="Search for products..."
-                  className="w-full py-3 px-6 bg-transparent text-gray-700 leading-tight focus:outline-none"
+                  className="w-full py-2 px-4 bg-transparent text-gray-700 leading-tight focus:outline-none"
                 />
-                <button type="submit" className="p-3 text-[#33DDFF] focus:outline-none transition-colors duration-200">
+                <button type="submit" className="p-2 text-[#33DDFF] focus:outline-none transition-colors duration-200">
                   <FaSearch className="w-5 h-5" />
                 </button>
               </div>
@@ -236,7 +244,7 @@ const BeforeLoginNavbar = () => {
           </div>
 
           {/* Navigation links for desktop */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-4">
             <div 
               className="relative group"
               ref={categoryDropdownRef}
@@ -265,7 +273,6 @@ const BeforeLoginNavbar = () => {
                 </ul>
               )}
             </div>
-
             <NavLink to="/about" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
               About
             </NavLink>
@@ -299,45 +306,40 @@ const BeforeLoginNavbar = () => {
         </div>
       </div>
 
-      {/* Mobile search bar */}
-      {isMobile && (
-        <div className="md:hidden px-4 py-2">
-          <form onSubmit={handleSearch} className="relative">
-            <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
-              <input
-                value={searchTerm}
-                onChange={handleSearchInputChange}
-                placeholder="Search for products..."
-                className="w-full py-2 px-4 bg-transparent text-gray-700 leading-tight focus:outline-none"
-              />
-              <button type="submit" className="p-2 text-[#33DDFF] focus:outline-none transition-colors duration-200">
-                <FaSearch className="w-5 h-5" />
-              </button>
-            </div>
-            {searchSuggestions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
-                {searchSuggestions.map((suggestion) => (
-                  <li
-                    key={suggestion._id}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    {suggestion.name}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </form>
-        </div>
-      )}
-
-      {/* Mobile menu */}
-      <div
-        className={`${
-          isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-        } md:hidden overflow-hidden transition-all duration-300 ease-in-out`}
-      >
+      {/* Mobile menu and search */}
+      <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
         <div className="px-2 pt-2 pb-3 space-y-1">
+          {/* Mobile search bar */}
+          <div className="mb-4">
+            <form onSubmit={handleSearch} className="relative">
+              <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400">
+                <input
+                  value={searchTerm}
+                  onChange={handleSearchInputChange}
+                  placeholder="Search for products..."
+                  className="w-full py-2 px-4 bg-transparent text-gray-700 leading-tight focus:outline-none"
+                />
+                <button type="submit" className="p-2 text-[#33DDFF] focus:outline-none transition-colors duration-200">
+                  <FaSearch className="w-5 h-5" />
+                </button>
+              </div>
+              {searchSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white mt-1 rounded-md shadow-lg">
+                  {searchSuggestions.map((suggestion) => (
+                    <li
+                      key={suggestion._id}
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {suggestion.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </form>
+          </div>
+
+          {/* Mobile menu items */}
           <NavLink 
             to="/AllCategoriesPage" 
             className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide"
@@ -354,7 +356,7 @@ const BeforeLoginNavbar = () => {
               }}
               className="text-gray-600 hover:text-[#33DDFF] block w-full text-left px-3 py-2 rounded-md text-sm font-medium tracking-wide ml-4"
             >
-              {category.name}
+             {category.name}
             </button>
           ))}
           <NavLink 
@@ -376,7 +378,7 @@ const BeforeLoginNavbar = () => {
             shake={cartClicked} 
             onClick={(e) => {
               handleCartClick(e);
-              handleNavLinkClick(e);
+              handleNavLinkClick();
             }} 
             className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center"
           >

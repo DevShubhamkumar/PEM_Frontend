@@ -4,7 +4,8 @@ import { GiHamburgerMenu } from 'react-icons/gi';
 import { Link, NavLink } from 'react-router-dom';
 import axios from 'axios';
 import './Navbar.css';
-import { BASE_URL } from '../api';
+
+export const BASE_URL = 'https://pem-backend.onrender.com';
 
 const AdminNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,6 +50,7 @@ const AdminNavbar = ({ handleLogout }) => {
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
+
   return (
     <nav className={`navbar ${isDarkMode ? 'navbar-dark' : 'navbar-light'}`}>
       <div className="navbar-container">
@@ -82,13 +84,13 @@ const AdminNavbar = ({ handleLogout }) => {
                 Reports
               </NavLink>
             </li>
-          <li>
-            {profilePicUrl ? (
-              <img src={profilePicUrl} alt="Profile" className="profile-picture" />
-            ) : (
-              <div className="empty-profile-picture"></div>
-            )}
-          </li>
+            <li>
+              {profilePicUrl ? (
+                <img src={profilePicUrl} alt="Profile" className="profile-picture" />
+              ) : (
+                <div className="empty-profile-picture"></div>
+              )}
+            </li>
             <li>
               <NavLink to="/" onClick={handleLogout}>
                 <FaSignOutAlt /> Logout
