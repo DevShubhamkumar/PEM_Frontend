@@ -7,6 +7,7 @@ import { Toaster, toast } from "react-hot-toast";
 import styled, { keyframes } from 'styled-components';
 
 import { BASE_URL } from "../api";
+import { useAppContext } from "./AppContext";
 
 const shakeAnimation = keyframes`
   0% { transform: translateX(0); }
@@ -24,17 +25,34 @@ const BeforeLoginNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [cartClicked, setCartClicked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
+  const [cartClicked, setCartClicked] = useState(false);
   const categoryDropdownRef = useRef(null);
 
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const timeoutRef = useRef(null);
+
+  const { fetchCategories } = useAppContext();
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    fetchCategories().then(setCategories).catch(console.error);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [fetchCategories]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -52,58 +70,30 @@ const BeforeLoginNavbar = () => {
     };
   }, []);
 
-  const handleCategoryMouseEnter = () => {
+  const handleCategoryMouseEnter = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     setShowCategoriesDropdown(true);
-  };
+  }, []);
 
-  const handleCategoryMouseLeave = () => {
+  const handleCategoryMouseLeave = useCallback(() => {
     timeoutRef.current = setTimeout(() => {
       setShowCategoriesDropdown(false);
     }, 300);
-  };
+  }, []);
 
-  const handleDropdownMouseEnter = () => {
+  const handleDropdownMouseEnter = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-  };
+  }, []);
 
-  const fetchCategories = useCallback(async () => {
-    if (categories.length === 0) {
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${BASE_URL}/api/categories`);
-        setCategories(response.data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        setError("Failed to load categories. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }, [categories]);
+  const toggleMenu = useCallback(() => {
+    setIsOpen(prevState => !prevState);
+  }, []);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    fetchCategories();
-    return () => window.removeEventListener("resize", handleResize);
-  }, [fetchCategories]);
-
-  const memoizedCategories = useMemo(() => categories, [categories]);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const handleSearch = async (e) => {
+  const handleSearch = useCallback(async (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
   
@@ -141,9 +131,9 @@ const BeforeLoginNavbar = () => {
     }
   
     setIsOpen(false);
-  };
+  }, [searchTerm, navigate]);
   
-  const handleSearchInputChange = async (e) => {
+  const handleSearchInputChange = useCallback(async (e) => {
     const value = e.target.value;
     setSearchTerm(value);
 
@@ -165,35 +155,37 @@ const BeforeLoginNavbar = () => {
     } else {
       setSearchSuggestions([]);
     }
-  };
+  }, []);
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = useCallback((suggestion) => {
     if (suggestion._id === "no-result") return;
     setSearchTerm(suggestion.name);
     setSearchSuggestions([]);
     handleSearch({ preventDefault: () => {} });
-  };
+  }, [handleSearch]);
 
-  const handleCartClick = (e) => {
+  const handleCartClick = useCallback((e) => {
     e.preventDefault();
     setCartClicked(true);
     toast.error("Please log in to view your cart");
     setTimeout(() => setCartClicked(false), 1000);
-  };
+  }, []);
 
-  const handleCategoryClick = (categoryId) => {
+  const handleCategoryClick = useCallback((categoryId) => {
     navigate(`/categories/${categoryId}`);
     setShowCategoriesDropdown(false);
     if (isMobile) {
       setIsOpen(false);
     }
-  };
+  }, [navigate, isMobile]);
 
-  const handleNavLinkClick = () => {
+  const handleNavLinkClick = useCallback(() => {
     if (isMobile) {
       setIsOpen(false);
     }
-  };
+  }, [isMobile]);
+
+  const memoizedCategories = useMemo(() => categories, [categories]);
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">

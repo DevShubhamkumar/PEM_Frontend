@@ -1,56 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'react-hot-toast';
 import Footer from './Footer';
+import { useAppContext } from './AppContext';
 import { BASE_URL } from '../api';
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { 
+    cart, 
+    isAuthenticated, 
+    addToCart, 
+    removeFromCart,
+    isLoading,
+    error
+  } = useAppContext();
   const navigate = useNavigate();
 
   const fetchCartData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const storedCart = localStorage.getItem('cartData');
-      const storedTimestamp = localStorage.getItem('cartTimestamp');
-      const currentTime = new Date().getTime();
-
-      // Check if stored cart exists and is less than 5 minutes old
-      if (storedCart && storedTimestamp && (currentTime - parseInt(storedTimestamp)) < 300000) {
-        setCartItems(JSON.parse(storedCart));
-      } else {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${BASE_URL}/api/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const validCartItems = response.data.filter((item) => item.productId !== null && item.productId !== undefined);
-        const cartItemsWithFullUrls = validCartItems.map((item) => ({
-          ...item,
-          productId: {
-            ...item.productId,
-            images: item.productId.images.map((imagePath) => `${BASE_URL}/${imagePath}`),
+    if (isAuthenticated) {
+      try {
+        const response = await fetch(`${BASE_URL}/api/cart`, {
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem('token')}` 
           },
-          sellerName: item.productId.seller?.name || 'Unknown Seller',
-        }));
-
-        setCartItems(cartItemsWithFullUrls);
-        localStorage.setItem('cartData', JSON.stringify(cartItemsWithFullUrls));
-        localStorage.setItem('cartTimestamp', currentTime.toString());
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch cart data');
+        }
+        const data = await response.json();
+        data.forEach(item => addToCart(item));
+      } catch (error) {
+        console.error('Error fetching cart data:', error);
+        toast.error('Failed to load cart data. Please try again.');
       }
-    } catch (error) {
-      console.error('Error fetching cart data:', error);
-      setError('An error occurred while fetching the cart data.');
-      toast.error('Failed to load cart data. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated, addToCart]);
 
   useEffect(() => {
     fetchCartData();
@@ -61,7 +46,7 @@ const CartPage = () => {
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
+    return cart.reduce((total, item) => {
       const price = item.productId?.price || 0;
       const discount = item.productId?.discount || 0;
       return total + getDiscountedPrice(price, discount) * item.quantity;
@@ -69,7 +54,7 @@ const CartPage = () => {
   };
 
   const getTotalDiscount = () => {
-    return cartItems.reduce((total, item) => {
+    return cart.reduce((total, item) => {
       const price = item.productId?.price || 0;
       const discount = item.productId?.discount || 0;
       return total + (price * item.quantity * discount) / 100;
@@ -83,24 +68,21 @@ const CartPage = () => {
         return;
       }
 
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${BASE_URL}/api/cart/${cartItemId}`,
-        { quantity: newQuantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await fetch(`${BASE_URL}/api/cart/${cartItemId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
 
-      setCartItems((prevCartItems) =>
-        prevCartItems.map((item) =>
-          item._id === cartItemId ? { ...item, quantity: newQuantity } : item
-        )
-      );
+      if (!response.ok) {
+        throw new Error('Failed to update cart item');
+      }
 
-      // Update localStorage
-      const updatedCart = cartItems.map((item) =>
-        item._id === cartItemId ? { ...item, quantity: newQuantity } : item
-      );
-      localStorage.setItem('cartData', JSON.stringify(updatedCart));
+      const updatedItem = await response.json();
+      addToCart(updatedItem);
 
       toast.success('Cart updated successfully.');
     } catch (error) {
@@ -111,16 +93,18 @@ const CartPage = () => {
 
   const handleRemoveCartItem = async (cartItemId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${BASE_URL}/api/cart/${cartItemId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch(`${BASE_URL}/api/cart/${cartItemId}`, {
+        method: 'DELETE',
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem('token')}` 
+        },
       });
 
-      const updatedCartItems = cartItems.filter((item) => item._id !== cartItemId);
-      setCartItems(updatedCartItems);
+      if (!response.ok) {
+        throw new Error('Failed to remove cart item');
+      }
 
-      // Update localStorage
-      localStorage.setItem('cartData', JSON.stringify(updatedCartItems));
+      removeFromCart(cartItemId);
 
       toast.success('Item removed from cart.');
     } catch (error) {
@@ -170,7 +154,7 @@ const CartPage = () => {
       {/* Cart Items */}
       <section className="cart-items py-20">
         <div className="container mx-auto px-4">
-          {cartItems.length === 0 ? (
+          {cart.length === 0 ? (
             <div className="text-center">
               <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
               <Link to="/" className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
@@ -186,7 +170,7 @@ const CartPage = () => {
                   transition={{ duration: 0.5 }}
                 >
                   <AnimatePresence>
-                    {cartItems.map((item) => (
+                    {cart.map((item) => (
                       <motion.div
                         key={item._id}
                         className="bg-white rounded-lg shadow-md overflow-hidden mb-6"

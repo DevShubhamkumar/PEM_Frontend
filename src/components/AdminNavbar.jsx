@@ -3,7 +3,6 @@ import { FaUserCircle, FaSignOutAlt, FaMoon, FaSun, FaTimes } from 'react-icons/
 import { GiHamburgerMenu } from 'react-icons/gi';
 import { Link, NavLink } from 'react-router-dom';
 import axios from 'axios';
-import './Navbar.css';
 
 export const BASE_URL = 'https://pem-backend.onrender.com';
 

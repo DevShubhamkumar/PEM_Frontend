@@ -203,4 +203,4 @@ const LocationCard = ({ title, description }) => (
   </div>
 );
 
-export default HomePage;
+export default HomePage; 

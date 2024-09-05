@@ -3,7 +3,6 @@ import { FaUserCircle, FaSignOutAlt, FaMoon, FaSun, FaTimes } from 'react-icons/
 import { GiHamburgerMenu } from 'react-icons/gi';
 import { Link, NavLink } from 'react-router-dom';
 import axios from 'axios';
-import './Navbar.css';
 import { BASE_URL } from '../api';
 const SellerNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);

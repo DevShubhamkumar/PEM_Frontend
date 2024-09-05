@@ -1,269 +1,197 @@
-import React, { useState, useEffect } from 'react';
-import styled, { createGlobalStyle } from 'styled-components';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { BASE_URL } from '../api';
+import { useAppContext } from './AppContext';
+import { FaEnvelope, FaLock, FaSignInAlt, FaUserPlus, FaShieldAlt, FaGlobe, FaHandshake } from 'react-icons/fa';
 
-const GlobalStyle = createGlobalStyle`
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Roboto', sans-serif;
-    background-color: #ffffff;
-    min-height: 100vh;
-  }
-`;
-
-const LoginContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-`;
-
-const Bubble = styled.div`
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #5cabff, #6e8efb);
-  opacity: 0.7;
-  animation: float 4s infinite ease-in-out;
-
-  &:nth-child(1) {
-    width: 120px;
-    height: 120px;
-    left: 10%;
-    top: 10%;
-    animation-duration: 8s;
-  }
-
-  &:nth-child(2) {
-    width: 80px;
-    height: 80px;
-    right: 20%;
-    top: 40%;
-    animation-duration: 6s;
-  }
-
-  &:nth-child(3) {
-    width: 60px;
-    height: 60px;
-    left: 30%;
-    bottom: 30%;
-    animation-duration: 7s;
-  }
-
-  &:nth-child(4) {
-    width: 100px;
-    height: 100px;
-    right: 5%;
-    bottom: 10%;
-    animation-duration: 9s;
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0) scale(1);
-    }
-    50% {
-      transform: translateY(-20px) scale(1.05);
-    }
-  }
-`;
-
-const StyledLoginForm = styled.form`
-  background-color: #ffffff;
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
-  max-width: 400px;
-  width: 100%;
-  z-index: 1;
-`;
-
-const FormTitle = styled.h1`
-  text-align: center;
-  margin-bottom: 24px;
-  color: #333333;
-  font-family: 'Montserrat', sans-serif;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  border: 1px solid #dddddd;
-  border-radius: 25px;
-  font-size: 16px;
-  background-color: #f8f9fa;
-  transition: all 0.3s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #6e8efb;
-    box-shadow: 0 0 0 2px rgba(110, 142, 251, 0.25);
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #6e8efb, #5cabff);
-  color: #ffffff;
-  border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: linear-gradient(135deg, #5cabff, #6e8efb);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const ErrorMessage = styled.div`
-  color: #ff4d4d;
-  margin-bottom: 10px;
-  font-weight: bold;
-  text-align: center;
-`;
-
-const ForgotPasswordLink = styled(Link)`
-  display: block;
-  text-align: right;
-  color: #6e8efb;
-  text-decoration: none;
-  font-size: 14px;
-  margin-bottom: 16px;
-  transition: color 0.3s ease;
-
-  &:hover {
-    color: #5cabff;
-    text-decoration: underline;
-  }
-`;
-const authAxios = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-const LoginForm = ({ onLogin }) => {
+const LoginForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      authAxios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-  }, []);
+  const { login, error, loading } = useAppContext();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     try {
-      console.log('Attempting login with:', { email, password });
-      const response = await authAxios.post(`/api/login`, { email, password });
-      console.log('Login response:', response.data);
+      const userData = await login({ email, password });
+      console.log('Login successful:', userData);
 
-      if (response.data.token) {
-        const { token, userType, userData } = response.data;
-        const role = userType;
-        const data = userData;
-        onLogin(role, data, token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('userRole', userType);
-        localStorage.setItem('userId', userData._id);
-
-        console.log('User data:', userData);
-
-        if (role === 'buyer') {
-          navigate('/');
-          toast.success('Login successful!');
-        } else if (role === 'seller') {
-          navigate('/seller');
-          toast.success('Login successful!');
-        } else if (role === 'admin') {
-          navigate('/admin/dashboard');
-          toast.success('Admin login successful!');
-        }
-      } else {
-        setError('Login failed. Please check your credentials.');
-        toast.error('Login failed. Please check your credentials.');
+      if (userData.role === 'buyer') {
+        navigate('/');
+        toast.success('Login successful!');
+      } else if (userData.role === 'seller') {
+        navigate('/seller');
+        toast.success('Login successful!');
+      } else if (userData.role === 'admin') {
+        navigate('/admin/dashboard');
+        toast.success('Admin login successful!');
       }
     } catch (error) {
       console.error('Login error:', error);
-      console.error('Error response:', error.response);
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setError(`Login failed: ${error.response.data.message || 'Unknown error'}`);
-        toast.error(`Login failed: ${error.response.data.message || 'Unknown error'}`);
-      } else if (error.request) {
-        // The request was made but no response was received
-        setError('No response received from server. Please try again later.');
-        toast.error('No response received from server. Please try again later.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setError('An error occurred during login. Please try again.');
-        toast.error('An error occurred during login. Please try again.');
-      }
+      toast.error(error.message || 'An error occurred during login. Please try again.');
     }
   };
 
   return (
-    <LoginContainer>
-      <GlobalStyle />
-      <Bubble />
-      <Bubble />
-      <Bubble />
-      <Bubble />
-      <StyledLoginForm onSubmit={handleLogin}>
-        <FormTitle>Login</FormTitle>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <ForgotPasswordLink to="/forgot-password">Forgot Password?</ForgotPasswordLink>
-        <SubmitButton type="submit">Login</SubmitButton>
-        <p style={{ textAlign: 'center', marginTop: '16px', color: '#333' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#6e8efb' }}>Sign Up</Link>
-        </p>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </StyledLoginForm>
-    </LoginContainer>
+    <div className="min-h-screen bg-gradient-to-r from-purple-600 to-indigo-600">
+      <div className="container mx-auto px-4 py-16">
+        <div className="flex flex-wrap -mx-4">
+          {/* Login Form Section */}
+          <div className="w-full lg:w-1/2 px-4 mb-8 lg:mb-0">
+            <div className="bg-white rounded-xl shadow-2xl p-8">
+              <h2 className="text-4xl font-extrabold text-gray-900 mb-6 text-center">Welcome Back</h2>
+              <p className="text-center text-gray-600 mb-8">Sign in to your account and explore our global marketplace</p>
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+                  <span className="block sm:inline">{error}</span>
+                </div>
+              )}
+              <form className="space-y-6" onSubmit={handleLogin}>
+                <div>
+                  <label htmlFor="email-address" className="sr-only">Email address</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaEnvelope className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="email-address"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pl-10"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="password" className="sr-only">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaLock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pl-10"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="remember-me"
+                      name="remember-me"
+                      type="checkbox"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                      Remember me
+                    </label>
+                  </div>
+                  <div className="text-sm">
+                    <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
+                      Forgot your password?
+                    </Link>
+                  </div>
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                      <FaSignInAlt className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
+                    </span>
+                    {loading ? 'Logging in...' : 'Sign in'}
+                  </button>
+                </div>
+              </form>
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">
+                      Or
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Link
+                    to="/register"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <FaUserPlus className="mr-2 h-5 w-5" />
+                    Create an account
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Content Section */}
+          <div className="w-full lg:w-1/2 px-4">
+            <div className="bg-white rounded-xl shadow-2xl p-8 h-full">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Why Join Our E-Marketplace?</h3>
+              <div className="space-y-6">
+                <FeatureItem
+                  icon={FaShieldAlt}
+                  title="Secure Transactions"
+                  description="Your privacy and security are our top priorities. We use state-of-the-art encryption to protect your personal and financial information."
+                />
+                <FeatureItem
+                  icon={FaGlobe}
+                  title="Global Reach"
+                  description="Connect with buyers and sellers from around the world. Expand your business horizons or find unique products from different cultures."
+                />
+                <FeatureItem
+                  icon={FaHandshake}
+                  title="Trusted Community"
+                  description="Join a vibrant community of verified users. Our rating system ensures transparency and builds trust among all participants."
+                />
+              </div>
+              <div className="mt-8">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">We're Committed to Your Success</h4>
+                <p className="text-gray-600 mb-4">
+                  Whether you're a buyer looking for the perfect item or a seller aiming to grow your business, our platform provides the tools and support you need to thrive in the digital marketplace.
+                </p>
+                <Link to="/about" className="text-indigo-600 hover:text-indigo-800 font-medium">
+                  Learn more about our mission &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ToastContainer />
+    </div>
   );
 };
+
+const FeatureItem = ({ icon: Icon, title, description }) => (
+  <div className="flex items-start">
+    <div className="flex-shrink-0">
+      <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
+        <Icon className="h-6 w-6" />
+      </div>
+    </div>
+    <div className="ml-4">
+      <h4 className="text-lg font-medium text-gray-900">{title}</h4>
+      <p className="mt-2 text-base text-gray-500">{description}</p>
+    </div>
+  </div>
+);
 
 export default LoginForm;
