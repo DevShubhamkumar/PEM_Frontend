@@ -1,127 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styled from 'styled-components';
-import { BASE_URL } from '../api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaUsers, FaStore, FaShoppingCart, FaTruck, FaUserPlus, FaStoreAlt, FaCartPlus, FaShippingFast } from 'react-icons/fa';
+import { useAppContext } from './AppContext';
 
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px;
-  background-color: #f8f8f8;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Title = styled.h1`
-  font-size: 36px;
-  font-weight: bold;
-  color: #333;
-  text-align: center;
-  margin-bottom: 40px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-`;
-
-const ReportContainer = styled.div`
-  margin-bottom: 30px;
-  padding: 30px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease-in-out;
-
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
-`;
-
-const ReportTitle = styled.h2`
-  font-size: 24px;
-  font-weight: bold;
-  color: #555;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-`;
-
-const ReportValue = styled.span`
-  font-size: 20px;
-  font-weight: bold;
-  color: #2196f3;
-`;
 
 const AdminReportsPage = () => {
+  const { fetchAdminReports, loading, error } = useAppContext();
   const [reports, setReports] = useState({
-    totalUsers: 0,
+    users: 0,
     sellers: 0,
-    buyerProducts: 0,
-    deliveredProducts: 0,
-    usersLast30Days: 0,
-    sellersLast30Days: 0,
-    buyerProductsLast30Days: 0,
-    deliveredProductsLast30Days: 0,
+    buyer_products: 0,
+    delivered_products: 0,
+    users_last_30_days: 0,
+    sellers_last_30_days: 0,
+    buyer_products_last_30_days: 0,
+    delivered_products_last_30_days: 0,
   });
 
+  const loadReports = useCallback(async () => {
+    try {
+      const fetchedReports = await fetchAdminReports();
+      setReports(fetchedReports);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    }
+  }, [fetchAdminReports]);
+
   useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const endpoints = [
-          'users',
-          'sellers',
-          'buyer-products',
-          'delivered-products',
-          'users-last-30-days',
-          'sellers-last-30-days',
-          'buyer-products-last-30-days',
-          'delivered-products-last-30-days',
-        ];
-
-        const responses = await Promise.all(
-          endpoints.map(endpoint =>
-            axios.get(`${BASE_URL}/api/admin/reports/${endpoint}`, { headers })
-          )
-        );
-
-        const newReports = responses.reduce((acc, response, index) => {
-          const key = endpoints[index].replace(/-/g, '_');
-          acc[key] = response.data.count;
-          return acc;
-        }, {});
-
-        setReports(newReports);
-      } catch (error) {
-        console.error('Error fetching reports:', error);
-        // Consider adding user-friendly error handling here
-      }
-    };
-
-    fetchReports();
-  }, []);
+    loadReports();
+  }, [loadReports]);
 
   const reportItems = [
-    { title: 'Total Registered Users', value: reports.users },
-    { title: 'Total Sellers', value: reports.sellers },
-    { title: 'Total Buyer Products', value: reports.buyer_products },
-    { title: 'Total Delivered Products', value: reports.delivered_products },
-    { title: 'Users Registered in Last 30 Days', value: reports.users_last_30_days },
-    { title: 'Sellers Registered in Last 30 Days', value: reports.sellers_last_30_days },
-    { title: 'Buyer Products Added in Last 30 Days', value: reports.buyer_products_last_30_days },
-    { title: 'Products Delivered in Last 30 Days', value: reports.delivered_products_last_30_days },
+    { title: 'Total Registered Users', value: reports.users, icon: FaUsers, color: 'blue' },
+    { title: 'Total Sellers', value: reports.sellers, icon: FaStore, color: 'green' },
+    { title: 'Total Buyer Products', value: reports.buyer_products, icon: FaShoppingCart, color: 'yellow' },
+    { title: 'Total Delivered Products', value: reports.delivered_products, icon: FaTruck, color: 'red' },
+    { title: 'Users Registered in Last 30 Days', value: reports.users_last_30_days, icon: FaUserPlus, color: 'purple' },
+    { title: 'Sellers Registered in Last 30 Days', value: reports.sellers_last_30_days, icon: FaStoreAlt, color: 'indigo' },
+    { title: 'Buyer Products Added in Last 30 Days', value: reports.buyer_products_last_30_days, icon: FaCartPlus, color: 'pink' },
+    { title: 'Products Delivered in Last 30 Days', value: reports.delivered_products_last_30_days, icon: FaShippingFast, color: 'teal' },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <h1 className="text-4xl font-bold text-gray-800">Loading reports...</h1>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <h1 className="text-4xl font-bold text-red-600">Error: {error}</h1>
+      </div>
+    );
+  }
+
   return (
-    <Container>
-      <Title>Admin Reports</Title>
-      {reportItems.map((item, index) => (
-        <ReportContainer key={index}>
-          <ReportTitle>{item.title}:</ReportTitle>
-          <ReportValue>{item.value}</ReportValue>
-        </ReportContainer>
-      ))}
-    </Container>
+    <div className="admin-reports-page w-full bg-gray-100">
+      <section className="reports-header relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Admin Reports Dashboard</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Get insights into your e-marketplace performance</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
+
+      <section className="reports-grid py-20">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {reportItems.map((item, index) => (
+              <ReportCard key={index} {...item} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+  
+    </div>
   );
 };
+
+const ReportCard = ({ title, value, icon: Icon, color }) => (
+  <div className={`bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 transform hover:-translate-y-2 hover:shadow-2xl`}>
+    <div className={`bg-${color}-100 p-6`}>
+      <Icon className={`text-5xl text-${color}-600 mb-4`} />
+      <h3 className="text-xl font-semibold mb-2 text-gray-800">{title}</h3>
+      <p className={`text-3xl font-bold text-${color}-600`}>{value.toLocaleString()}</p>
+    </div>
+  </div>
+);
 
 export default AdminReportsPage;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,24 +9,37 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, error, loading } = useAppContext();
+  const { login, error, loading, isAuthenticated, user } = useAppContext();
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      redirectBasedOnRole(user.role);
+    }
+  }, [isAuthenticated, user]);
+
+  const redirectBasedOnRole = (role) => {
+    switch (role) {
+      case 'buyer':
+        navigate('/');
+        break;
+      case 'seller':
+        navigate('/seller');
+        break;
+      case 'admin':
+        navigate('/admin/dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const userData = await login({ email, password });
       console.log('Login successful:', userData);
-
-      if (userData.role === 'buyer') {
-        navigate('/');
-        toast.success('Login successful!');
-      } else if (userData.role === 'seller') {
-        navigate('/seller');
-        toast.success('Login successful!');
-      } else if (userData.role === 'admin') {
-        navigate('/admin/dashboard');
-        toast.success('Admin login successful!');
-      }
+      toast.success('Login successful!');
+      redirectBasedOnRole(userData.role);
     } catch (error) {
       console.error('Login error:', error);
       toast.error(error.message || 'An error occurred during login. Please try again.');

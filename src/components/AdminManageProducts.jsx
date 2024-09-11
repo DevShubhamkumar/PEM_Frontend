@@ -1,76 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-import Footer from './Footer';
-import { BASE_URL } from '../api';
+import { FaPlus, FaTrash, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { useAppContext } from './AppContext';
 
 const AdminManageProducts = () => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [itemTypes, setItemTypes] = useState([]);
-  const [brands, setBrands] = useState([]);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterItemType, setFilterItemType] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const { 
+    products, 
+    categories, 
+    itemTypes, 
+    brands, 
+    loading, 
+    error, 
+    fetchAdminData, 
+    deleteProduct, 
+    toggleProductStatus 
+  } = useAppContext();
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching data with token:', token);
-
-      const response = await axios.get(`${BASE_URL}/api/admin/data`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log('Response from server:', response.data);
-
-      setProducts(response.data.products);
-      setCategories(response.data.categories);
-      setItemTypes(response.data.itemTypes);
-      setBrands(response.data.brands);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
+    fetchAdminData();
+  }, [fetchAdminData]);
 
   const handleDelete = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${BASE_URL}/api/products/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setProducts(products.filter((product) => product._id !== id));
-    } catch (error) {
-      console.error('Error deleting product:', error);
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await deleteProduct(id);
+      } catch (error) {
+        console.error('Error deleting product:', error);
+      }
     }
   };
 
-  const toggleProductStatus = async (id, isEnabled) => {
+  const handleToggleProductStatus = async (id, isEnabled) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${BASE_URL}/api/products/${id}`,
-        {
-          isActive: isEnabled,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log(`Product ${id} is ${isEnabled ? 'enabled' : 'disabled'}`);
-
-      setProducts(products.map((product) => (product._id === id ? response.data : product)));
+      await toggleProductStatus(id, isEnabled);
     } catch (error) {
       console.error('Error toggling product status:', error);
     }
@@ -99,100 +64,146 @@ const AdminManageProducts = () => {
     return brand ? brand.name : '';
   };
 
-  return (
-    <div>
-      <h1>Manage Products</h1>
-      <div>
-        {/* Filter by Category */}
-        <label htmlFor="filterCategory">Filter by Category:</label>
-        <select
-          id="filterCategory"
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-        >
-          <option value="">All Categories</option>
-          {categories.map((category) => (
-            <option key={category._id} value={category._id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Filter by Item Type */}
-        <label htmlFor="filterItemType">Filter by Item Type:</label>
-        <select
-          id="filterItemType"
-          value={filterItemType}
-          onChange={(e) => setFilterItemType(e.target.value)}
-        >
-          <option value="">All Item Types</option>
-          {itemTypes.map((itemType) => (
-            <option key={itemType._id} value={itemType._id}>
-              {itemType.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Filter by Brand */}
-        <label htmlFor="filterBrand">Filter by Brand:</label>
-        <select
-          id="filterBrand"
-          value={filterBrand}
-          onChange={(e) => setFilterBrand(e.target.value)}
-        >
-          <option value="">All Brands</option>
-          {brands.map((brand) => (
-            <option key={brand._id} value={brand._id}>
-              {brand.name}
-            </option>
-          ))}
-        </select>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <h1 className="text-4xl font-bold text-gray-800">Loading products...</h1>
       </div>
+    );
+  }
 
-       <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Discount</th>
-            <th>Category</th>
-            <th>Item Type</th>
-            <th>Brand</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProducts.map((product) => (
-            <tr key={product._id}>
-              <td>{product.name}</td>
-              <td>{product.description}</td>
-              <td>{product.price}</td>
-              <td>{product.stock}</td>
-              <td>{product.discount}</td>
-              <td>{getCategoryName(product.category)}</td>
-              <td>{getItemTypeName(product.itemType)}</td>
-              <td>{getBrandName(product.brand)}</td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={product.isActive}
-                  onChange={(e) => toggleProductStatus(product._id, e.target.checked)}
-                />
-              </td>
-              <td>
-                <button onClick={() => handleDelete(product._id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <h1 className="text-4xl font-bold text-red-600">Error: {error}</h1>
+      </div>
+    );
+  }
 
-      <Link to="/add-product">Add Product</Link>
+  return (
+    <div className="admin-manage-products-page w-full bg-gray-100">
+      <section className="products-header relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Manage Products</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Efficiently manage your product catalog</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
+
+      <section className="products-content py-20">
+        <div className="container mx-auto px-4">
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FilterSelect
+              id="filterCategory"
+              label="Filter by Category"
+              value={filterCategory}
+              onChange={setFilterCategory}
+              options={categories}
+            />
+            <FilterSelect
+              id="filterItemType"
+              label="Filter by Item Type"
+              value={filterItemType}
+              onChange={setFilterItemType}
+              options={itemTypes}
+            />
+            <FilterSelect
+              id="filterBrand"
+              label="Filter by Brand"
+              value={filterBrand}
+              onChange={setFilterBrand}
+              options={brands}
+            />
+          </div>
+
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['Name', 'Description', 'Price', 'Stock', 'Discount', 'Category', 'Item Type', 'Brand', 'Status', 'Actions'].map((header) => (
+                    <th
+                      key={header}
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredProducts.map((product) => (
+                  <tr key={product._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.description.substring(0, 50)}...</td>
+                    <td className="px-6 py-4 whitespace-nowrap">${product.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.stock}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.discount}%</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{getCategoryName(product.category)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{getItemTypeName(product.itemType)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{getBrandName(product.brand)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleToggleProductStatus(product._id, !product.isActive)}
+                        className={`${
+                          product.isActive ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900'
+                        } transition duration-150 ease-in-out`}
+                      >
+                        {product.isActive ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link to={`/edit-product/${product._id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                        <FaEdit />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Link
+              to="/add-product"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <FaPlus className="mr-2" /> Add Product
+            </Link>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 };
+
+const FilterSelect = ({ id, label, value, onChange, options }) => (
+  <div>
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
+      {label}:
+    </label>
+    <select
+      id={id}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+    >
+      <option value="">All</option>
+      {options.map((option) => (
+        <option key={option._id} value={option._id}>
+          {option.name}
+        </option>
+      ))}
+    </select>
+  </div>
+);
 
 export default AdminManageProducts;

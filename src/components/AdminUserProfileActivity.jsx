@@ -1,89 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
-import { BASE_URL } from '../api';
+import axios from 'axios';
+import { FaUser, FaStar, FaCalendarAlt, FaToggleOn, FaToggleOff, FaComments } from 'react-icons/fa';
 
-const Container = styled.div`
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 40px;
-  background-color: #f8f8f8;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-`;
-
-const Title = styled.h2`
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 30px;
-  color: #333;
-  text-align: center;
-`;
-
-const CommentList = styled.ul`
-  list-style: none;
-  padding: 0;
-`;
-
-const CommentItem = styled.li`
-  background-color: #fff;
-  padding: 20px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const CommentText = styled.p`
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #333;
-`;
-
-const CommentRating = styled.p`
-  font-size: 14px;
-  color: #777;
-  margin-bottom: 10px;
-`;
-
-const CommentAuthor = styled.p`
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 10px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #fff;
-  background-color: #007bff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const NoCommentsMessage = styled.p`
-  font-size: 18px;
-  color: #777;
-  text-align: center;
-`;
+const BASE_URL = 'https://pem-backend.onrender.com';
 
 const AdminUserProfileActivity = () => {
   const { userId, userType } = useParams();
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     fetchUserComments();
@@ -101,7 +27,7 @@ const AdminUserProfileActivity = () => {
       setComments(response.data);
     } catch (error) {
       console.error('Error fetching user comments:', error);
-      toast.error('An error occurred while fetching user comments.');
+      showToast('error', 'An error occurred while fetching user comments.');
     } finally {
       setIsLoading(false);
     }
@@ -125,45 +51,97 @@ const AdminUserProfileActivity = () => {
           comment._id === commentId ? { ...comment, isActive: !isActive } : comment
         )
       );
-      toast.success('Comment status updated successfully');
+      showToast('success', 'Comment status updated successfully');
     } catch (error) {
       console.error('Error updating comment status:', error);
       if (error.response && error.response.status === 403) {
-        toast.error('You are not authorized to update comment status.');
+        showToast('error', 'You are not authorized to update comment status.');
       } else {
-        toast.error('An error occurred while updating comment status.');
+        showToast('error', 'An error occurred while updating comment status.');
       }
     }
   };
 
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   if (isLoading) {
-    return <Container><Title>Loading...</Title></Container>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
   }
 
   return (
-    <Container>
-      <Toaster />
-      <Title>{userType === 'buyer' ? 'Buyer' : 'Seller'} Comments</Title>
-      <CommentList>
-        {comments.length === 0 ? (
-          <NoCommentsMessage>This user has not commented yet.</NoCommentsMessage>
-        ) : (
-          comments.map((comment) => (
-            <CommentItem key={comment._id}>
-              <CommentText>{comment.text}</CommentText>
-              <CommentRating>Rating: {comment.rating} stars</CommentRating>
-              <CommentAuthor>
-                By {userType === 'buyer' ? comment.sellerId?.sellerFields?.name : comment.buyerId?.buyerFields?.name} on{' '}
-                {new Date(comment.createdAt).toLocaleString()}
-              </CommentAuthor>
-              <Button onClick={() => handleEnableDisableComment(comment._id, comment.isActive)}>
-                {comment.isActive ? 'Disable' : 'Enable'}
-              </Button>
-            </CommentItem>
-          ))
-        )}
-      </CommentList>
-    </Container>
+    <div className="bg-gray-100 min-h-screen">
+      {toast && (
+        <div className={`fixed top-4 right-4 p-4 rounded-md ${
+          toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {toast.message}
+        </div>
+      )}
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold mb-8 text-center text-indigo-600">
+          {userType === 'buyer' ? 'Buyer' : 'Seller'} Activity Profile
+        </h1>
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          {comments.length === 0 ? (
+            <div className="text-center py-12">
+              <FaComments className="text-6xl text-gray-300 mx-auto mb-4" />
+              <p className="text-xl text-gray-600">This user has not commented yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {comments.map((comment) => (
+                <div key={comment._id} className="bg-gray-50 rounded-lg p-6 shadow-md transition duration-300 hover:shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <FaUser className="text-indigo-500 text-2xl mr-3" />
+                      <span className="text-lg font-semibold text-gray-800">
+                        {userType === 'buyer' ? comment.sellerId?.sellerFields?.name : comment.buyerId?.buyerFields?.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaStar className="text-yellow-400 mr-2" />
+                      <span className="text-gray-600">Rating: {comment.rating} stars</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-4 bg-white p-4 rounded-lg shadow-inner">{comment.text}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <FaCalendarAlt className="mr-2" />
+                      <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                    </div>
+                    <button
+                      onClick={() => handleEnableDisableComment(comment._id, comment.isActive)}
+                      className={`flex items-center px-4 py-2 rounded-full text-white font-semibold transition duration-300 ${
+                        comment.isActive
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-green-500 hover:bg-green-600'
+                      }`}
+                    >
+                      {comment.isActive ? (
+                        <>
+                          <FaToggleOn className="mr-2" /> Disable
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="mr-2" /> Enable
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

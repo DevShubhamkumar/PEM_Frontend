@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import axios from 'axios';
 import { LoadingProvider, useLoading } from './components/LoadingContext';
-import { AppProvider, useAppContext } from './components/AppContext'; // Import AppProvider and useAppContext
+import { AppProvider, useAppContext } from './components/AppContext';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,10 +12,10 @@ import HomePage from './components/HomePage';
 import BuyerNavbar from './components/BuyerNavbar';
 import AdminNavbar from './components/AdminNavbar';
 import SellerNavbar from './components/SellerNavbar';
+import BeforeLoginNavbar from './components/BeforeLoginNavbar';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
 import Cart from './components/Cart';
-import BeforeLoginNavbar from './components/BeforeLoginNavbar';
 import CategoryProductsPage from './components/CategoryProductsPage';
 import AllCategoriesPage from './components/AllCategoriesPage';
 import SellerManageProducts from './components/SellerManageProducts';
@@ -34,8 +33,7 @@ import AdminUserProfileActivity from './components/AdminUserProfileActivity';
 import AdminProfile from './components/AdminProfile';
 import SellerProfile from './components/SellerProfile';
 import ForgotPassword from './components/ForgotPassword';
-import { BASE_URL } from './api';
-import { motion } from 'framer-motion';
+import Preloader from './components/Preloader'; 
 
 const App = () => {
   return (
@@ -48,37 +46,39 @@ const App = () => {
     </AppProvider>
   );
 };
-
 const AppContent = () => {
   const { isLoading } = useLoading();
-  const { isAuthenticated, user, logout } = useAppContext(); // Use AppContext
+  const { isAuthenticated, user, logout, authCheckComplete } = useAppContext();
 
-  React.useEffect(() => {
-    // Remove local storage checks as AppContext now handles authentication state
-  }, []);
-
-  if (isLoading) {
-    // ... (loading component remains unchanged)
+  if (isLoading || !authCheckComplete) {
+    return <Preloader />; // Use the new Preloader component
   }
+
+  const renderNavbar = () => {
+    if (!isAuthenticated) {
+      return <BeforeLoginNavbar />;
+    }
+
+    switch (user.role) {
+      case 'buyer':
+        return <BuyerNavbar isAuthenticated={isAuthenticated} buyerData={user} handleLogout={logout} />;
+      case 'admin':
+        return <AdminNavbar handleLogout={logout} />;
+      case 'seller':
+        return <SellerNavbar handleLogout={logout} sellerData={user} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div>
-      {isAuthenticated ? (
-        user.role === 'buyer' ? (
-          <BuyerNavbar isAuthenticated={isAuthenticated} buyerData={user} handleLogout={logout} />
-        ) : user.role === 'admin' ? (
-          <AdminNavbar handleLogout={logout} />
-        ) : user.role === 'seller' ? (
-          <SellerNavbar handleLogout={logout} sellerData={user} />
-        ) : null
-      ) : (
-        <BeforeLoginNavbar />
-      )}
+      {renderNavbar()}
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/register" element={<RegisterForm />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginForm />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <RegisterForm />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/cart" element={<Cart />} />
@@ -91,7 +91,6 @@ const AppContent = () => {
         <Route path="/AllCategoriesPage" element={<AllCategoriesPage />} />
         <Route path="/categories/:categoryName/products" element={<CategoryProductsPage />} />
         <Route path="/OrderSummaryPage" element={<OrderSummaryPage />} />
-        <Route path="/payment-gateway" element={<PaymentGatewayPage />} />
         <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 

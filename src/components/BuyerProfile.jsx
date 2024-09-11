@@ -1,208 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import styled, { createGlobalStyle } from 'styled-components';
+import { FaUserCircle, FaShoppingBag, FaMapMarkerAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { BASE_URL } from '../api';
-
-// Define colors
-const primaryColor = '#1976d2';
-const secondaryColor = '#607d8b';
-const backgroundColor = '#f5f5f5';
-const textColor = '#263238';
-
-// Global Styles
-const GlobalStyles = createGlobalStyle`
-  body {
-    background-color: ${backgroundColor};
-    color: ${textColor};
-    font-family: 'Roboto', sans-serif;
-  }
-`;
-
-// Styled components
-const BuyerProfileContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-top: 40px;
-`;
-
-const WelcomeMessage = styled.div`
-  text-align: center;
-  margin-bottom: 40px;
-  font-size: 28px;
-  font-weight: bold;
-  color: ${primaryColor};
-`;
-
-const ProfileHeader = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  justify-content: center;
-`;
-
-const ProfilePicture = styled.img`
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-right: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  @media (max-width: 768px) {
-    margin-bottom: 20px;
-    margin-right: 0;
-  }
-`;
-
-const ProfileDetails = styled.div`
-  flex: 1;
-  text-align: center;
-  @media (max-width: 768px) {
-    text-align: center;
-  }
-`;
-
-const Name = styled.h2`
-  color: ${primaryColor};
-  margin-bottom: 10px;
-`;
-
-const Email = styled.p`
-  color: ${secondaryColor};
-  font-size: 16px;
-`;
-
-const OrdersContainer = styled.div`
-  margin-top: 40px;
-`;
-
-const OrderCard = styled.div`
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-`;
-
-const Tab = styled.button`
-  padding: 15px 30px;
-  background-color: ${(props) => (props.active ? '#007bff' : '#f8f8f8')};
-  color: ${(props) => (props.active ? '#fff' : '#333')};
-  border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:not(:last-child) {
-    margin-right: 20px;
-  }
-
-  @media (max-width: 768px) {
-    margin-bottom: 10px;
-    &:not(:last-child) {
-      margin-right: 0;
-    }
-  }
-`;
-
-const TabContent = styled.div`
-  padding: 40px;
-  background-color: #f8f8f8;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-`;
-
-const EditForm = styled.form`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-gap: 20px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  font-weight: 600;
-  margin-bottom: 5px;
-`;
-
-const Input = styled.input`
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &:not(:last-child) {
-    margin-right: 10px;
-  }
-`;
-
-const AddressContainer = styled.div`
-  margin-top: 40px;
-`;
-
-const AddressCard = styled.div`
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const AddressDetails = styled.div`
-  flex: 1;
-`;
-
-const AddressActions = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const EditButton = styled(Button)`
-  background-color: ${primaryColor};
-  margin-right: 10px;
-`;
-
-const DeleteButton = styled(Button)`
-  background-color: #f44336;
-`;
 
 const BuyerProfile = () => {
   const [buyer, setBuyer] = useState(null);
@@ -220,44 +20,22 @@ const BuyerProfile = () => {
   });
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [addressMode, setAddressMode] = useState('view');
-  const [newAddress, setNewAddress] = useState({
-    fullName: '',
-    phoneNumber: '',
-    pinCode: '',
-    locality: '',
-    address: '',
-    city: '',
-    state: '',
-    landmark: '',
-  });
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem('token');
-        
         if (!token) {
           throw new Error('Token not found');
         }
-    
-        // Decode the token to get the user ID
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
         const userId = decodedToken.userId;
-    
-        console.log('Fetching user data for userId:', userId);
-        console.log('Using token:', token);
-    
+
         const profileResponse = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-    
-    
-        console.log('Profile response:', profileResponse);
-    
+
         if (profileResponse && profileResponse.data) {
-          console.log('Profile data received:', profileResponse.data);
           setBuyer(profileResponse.data);
           setProfileData({
             name: profileResponse.data.buyerFields?.name || '',
@@ -269,7 +47,7 @@ const BuyerProfile = () => {
         } else {
           throw new Error('Profile response is missing data');
         }
-    
+
         setLoading(false);
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -277,380 +55,285 @@ const BuyerProfile = () => {
         setLoading(false);
       }
     };
-        
-            fetchUserData();
-          }, []);
-        
-          const handleEditMode = () => {
-            setEditMode(!editMode);
-            if (!editMode && buyer && buyer.buyerFields) {
-              setProfileData({
-                name: buyer.buyerFields.name || '',
-                email: buyer.email || '',
-                address: buyer.buyerFields.address || '',
-                contactNumber: buyer.buyerFields.contactNumber || '',
-              });
-              const profilePictureUrl = buyer.profilePicture
-                ? buyer.profilePicture.startsWith('http')
-                  ? buyer.profilePicture
-                  : `${BASE_URL}/${buyer.profilePicture}`
-                : '';
-              setImagePreview(profilePictureUrl);
-            } else {
-              setProfileData({
-                name: '',
-                email: '',
-                address: '',
-                contactNumber: '',
-              });
-              setImagePreview(null);
-            }
-          };
-          
-          const handleProfileImageChange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              setProfileImage(file);
-              setImagePreview(URL.createObjectURL(file));
-            }
-          };
-          
-          const handleProfileSave = async (e) => {
-            e.preventDefault();
-          
-            const token = localStorage.getItem('token');
-            
-            // Decode the token to get the userId
-            const decodedToken = JSON.parse(atob(token.split('.')[1]));
-            const userId = decodedToken.userId;
-          
-            console.log('Using userId from token:', userId);
-          
-            const formData = new FormData();
-            formData.append('name', profileData.name);
-            formData.append('email', profileData.email);
-            formData.append('address', profileData.address);
-            formData.append('contactNumber', profileData.contactNumber);
-            if (profileImage) {
-              formData.append('profilePicture', profileImage);
-            }
-          
-            try {
-              const response = await axios.put(
-                `${BASE_URL}/api/users/${userId}/profile`,
-                formData,
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
-                  },
-                }
-              );
-              console.log('Update response:', response.data);
 
-          
-          
-              setBuyer(response.data);
-              setEditMode(false);
-              setProfileImage(null); // Reset profileImage state after successful save
-            } catch (error) {
-              setError(error.message || 'An unexpected error occurred');
-            }
-          };
-          
-          
-          const handleAddressMode = (mode, address = null) => {
-            setAddressMode(mode);
-            setSelectedAddress(address);
-            if (mode === 'edit' && address) {
-              setNewAddress(address);
-            } else {
-              setNewAddress({
-                fullName: '',
-                phoneNumber: '',
-                pinCode: '',
-                locality: '',
-                address: '',
-                city: '',
-                state: '',
-                landmark: '',
-              });
-            }
-          };
-          
-          const handleAddressSave = async (e) => {
-            e.preventDefault();
-          
-            const userId = localStorage.getItem('userId');
-            const token = localStorage.getItem('token');
-            try {
-              if (addressMode === 'edit' && selectedAddress) {
-                await axios.put(
-                  `${BASE_URL}/api/users/${userId}/addresses/${selectedAddress._id}`,
-                  newAddress,
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-              } else {
-                await axios.post(
-                  `${BASE_URL}/api/users/${userId}/addresses`,
-                  newAddress,
-                  {
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-              }
-              const addressesResponse = await axios.get(
-                `${BASE_URL}/api/users/${userId}/addresses`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              setAddresses(addressesResponse.data);
-              setAddressMode('view');
-            } catch (error) {
-              setError(error.message || 'An unexpected error occurred');
-            }
-          };
-          
-          
-          const handleAddressDelete = async (addressId) => {
-            const userId = localStorage.getItem('userId');
-            const token = localStorage.getItem('token');
-            try {
-              await axios.delete(
-                `${BASE_URL}/api/users/${userId}/addresses/${addressId}`,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              setAddresses(addresses.filter((address) => address._id !== addressId));
-            } catch (error) {
-              setError(error.message || 'An unexpected error occurred');
-            }
-          };
-          
-          if (loading) {
-            return <div>Loading...</div>;
-          }
-          
-          if (error) {
-            return <div>Error: {error}</div>;
-          }
-          
-          return (
-            <BuyerProfileContainer>
-              <GlobalStyles />
-              <WelcomeMessage>Welcome to Your Profile</WelcomeMessage>
-              <ProfileHeader>
-                <ProfilePicture src={imagePreview || 'default-profile-picture.jpg'} alt="Profile" />
-                <ProfileDetails>
-                  <Name>{buyer.buyerFields?.name}</Name>
-                  <Email>{buyer.email}</Email>
-                  <Button onClick={handleEditMode}>
-                    {editMode ? 'Cancel' : 'Edit Profile'}
-                  </Button>
-                </ProfileDetails>
-              </ProfileHeader>
-              {editMode && (
-                <EditForm onSubmit={handleProfileSave}>
-                  <FormGroup>
-                    <Label>Name:</Label>
-                    <Input
-                      type="text"
-                      value={profileData.name}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, name: e.target.value })
-                      }
-                      required
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Email:</Label>
-                    <Input
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, email: e.target.value })
-                      }
-                      required
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Address:</Label>
-                    <Input
-                      type="text"
-                      value={profileData.address}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, address: e.target.value })
-                      }
-                      required
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Contact Number:</Label>
-                    <Input
-                      type="text"
-                      value={profileData.contactNumber}
-                      onChange={(e) =>
-                        setProfileData({ ...profileData, contactNumber: e.target.value })
-                      }
-                      required
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Profile Picture:</Label>
-                    <Input type="file" onChange={handleProfileImageChange} />
-                  </FormGroup>
-                  <Button type="submit">Save Profile</Button>
-                </EditForm>
-              )}
-              <Tabs>
-                <Tab
-                  active={activeTab === 'profile'}
-                  onClick={() => setActiveTab('profile')}
-                >
-                  Profile
-                </Tab>
-                <Tab
-                  active={activeTab === 'orders'}
-                  onClick={() => setActiveTab('orders')}
-                >
-                  Orders
-                </Tab>
-                <Tab
-                  active={activeTab === 'addresses'}
-                  onClick={() => setActiveTab('addresses')}
-                >
-                  Addresses
-                </Tab>
-              </Tabs>
-              <TabContent>
-                {activeTab === 'profile' && (
-                  <>
-                    <h2>Profile Information</h2>
-                    <p>Name: {buyer.buyerFields?.name}</p>
-                    <p>Email: {buyer.email}</p>
-                    <p>Address: {buyer.buyerFields?.address}</p>
-                    <p>Contact Number: {buyer.buyerFields?.contactNumber}</p>
-                  </>
-                )}
-                {activeTab === 'orders' && (
-                  <OrdersContainer>
-                    <h2>Your Orders</h2>
-                    {orders.map((order) => (
-                      <OrderCard key={order._id}>
-                        <p>Order ID: {order._id}</p>
-                        <p>Date: {new Date(order.date).toLocaleDateString()}</p>
-                        <p>Total Amount: ${order.totalAmount}</p>
-                      </OrderCard>
-                    ))}
-                  </OrdersContainer>
-                )}
-                {activeTab === 'addresses' && (
-                  <AddressContainer>
-                    <h2>Your Addresses</h2>
-                    {addresses.map((address) => (
-                      <AddressCard key={address._id}>
-                        <AddressDetails>
-                          <p>Full Name: {address.fullName}</p>
-                          <p>Phone Number: {address.phoneNumber}</p>
-                          <p>Address: {address.address}</p>
-                          <p>City: {address.city}</p>
-                          <p>State: {address.state}</p>
-                          <p>Pin Code: {address.pinCode}</p>
-                          <p>Landmark: {address.landmark}</p>
-                        </AddressDetails>
-                        <AddressActions>
-                          <EditButton onClick={() => handleAddressMode('edit', address)}>Edit</EditButton>
-                          <DeleteButton onClick={() => handleAddressDelete(address._id)}>Delete</DeleteButton>
-                        </AddressActions>
-                      </AddressCard>
-                    ))}
-                    {addressMode === 'add' || (addressMode === 'edit' && selectedAddress) ? (
-                      <EditForm onSubmit={handleAddressSave}>
-                        <FormGroup>
-                          <Label>Full Name:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.fullName}
-                            onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Phone Number:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.phoneNumber}
-                            onChange={(e) => setNewAddress({ ...newAddress, phoneNumber: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Pin Code:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.pinCode}
-                            onChange={(e) => setNewAddress({ ...newAddress, pinCode: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Locality:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.locality}
-                            onChange={(e) => setNewAddress({ ...newAddress, locality: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Address:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.address}
-                            onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>City:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.city}
-                            onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>State:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.state}
-                            onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                            required
-                          />
-                        </FormGroup>
-                        <FormGroup>
-                          <Label>Landmark:</Label>
-                          <Input
-                            type="text"
-                            value={newAddress.landmark}
-                            onChange={(e) => setNewAddress({ ...newAddress, landmark: e.target.value })}
-                          />
-                        </FormGroup>
-                        <Button type="submit">Save Address</Button>
-                      </EditForm>
-                    ) : (
-                      <Button onClick={() => handleAddressMode('add')}>Add New Address</Button>
-                    )}
-                  </AddressContainer>
-                )}
-              </TabContent>
-            </BuyerProfileContainer>
-          );
+    fetchUserData();
+  }, []);
+
+  const handleEditMode = useCallback(() => {
+    setEditMode((prev) => !prev);
+    if (!editMode && buyer && buyer.buyerFields) {
+      setProfileData({
+        name: buyer.buyerFields.name || '',
+        email: buyer.email || '',
+        address: buyer.buyerFields.address || '',
+        contactNumber: buyer.buyerFields.contactNumber || '',
+      });
+      const profilePictureUrl = buyer.profilePicture
+        ? buyer.profilePicture.startsWith('http')
+          ? buyer.profilePicture
+          : `${BASE_URL}/${buyer.profilePicture}`
+        : '';
+      setImagePreview(profilePictureUrl);
+    }
+  }, [editMode, buyer]);
+
+  const handleProfileImageChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  }, []);
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem('token');
+    const decodedToken = JSON.parse(atob(token.split('.')[1]));
+    const userId = decodedToken.userId;
+
+    const formData = new FormData();
+    formData.append('name', profileData.name);
+    formData.append('email', profileData.email);
+    formData.append('address', profileData.address);
+    formData.append('contactNumber', profileData.contactNumber);
+    if (profileImage) {
+      formData.append('profilePicture', profileImage);
+    }
+
+    try {
+      const response = await axios.put(
+        `${BASE_URL}/api/users/${userId}/profile`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
         }
-        
-        export default BuyerProfile;
+      );
+      setBuyer(response.data);
+      setEditMode(false);
+      setProfileImage(null);
+    } catch (error) {
+      setError(error.message || 'An unexpected error occurred');
+    }
+  };
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  return (
+    <div className="buyer-profile w-full">
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-blue-600 to-green-600 text-white py-32">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Welcome, {buyer?.buyerFields?.name}</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Manage your profile and view your orders</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
+
+      {/* Buyer Profile Section */}
+      <section className="buyer-profile-section py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Your Buyer Profile</h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="flex flex-col md:flex-row items-center mb-8">
+              <div className="md:w-1/3 mb-4 md:mb-0">
+                <img
+                  src={imagePreview || 'https://via.placeholder.com/200x200'}
+                  alt="Profile"
+                  className="w-48 h-48 rounded-full object-cover mx-auto"
+                />
+              </div>
+              <div className="md:w-2/3 md:pl-8">
+                {editMode ? (
+                  <form onSubmit={handleProfileSave} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
+                      <input type="file" accept="image/*" onChange={handleProfileImageChange} className="mt-1 block w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                        type="text"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Address</label>
+                      <input
+                        type="text"
+                        value={profileData.address}
+                        onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Contact Number</label>
+                      <input
+                        type="text"
+                        value={profileData.contactNumber}
+                        onChange={(e) => setProfileData({ ...profileData, contactNumber: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div className="flex space-x-4">
+                      <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">
+                        <FaSave className="inline-block mr-2" /> Save
+                      </button>
+                      <button type="button" onClick={handleEditMode} className="bg-gray-300 text-gray-700 py-2 px-4 rounded-full hover:bg-gray-400 transition duration-300">
+                        <FaTimes className="inline-block mr-2" /> Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div>
+                    <h3 className="text-2xl font-semibold mb-2">{buyer?.buyerFields?.name}</h3>
+                    <p className="text-gray-600 mb-4">{buyer?.email}</p>
+                    <button onClick={handleEditMode} className="bg-blue-600 text-white py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">
+                      <FaEdit className="inline-block mr-2" /> Edit Profile
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Buyer Features */}
+      <section className="buyer-features py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Buyer Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard
+              icon={FaUserCircle}
+              title="Manage Profile"
+              description="Update your buyer profile information and settings"
+              onClick={() => handleTabChange('profile')}
+            />
+            <FeatureCard
+              icon={FaShoppingBag}
+              title="View Orders"
+              description="Check your order history and track current orders"
+              onClick={() => handleTabChange('orders')}
+            />
+            <FeatureCard
+              icon={FaMapMarkerAlt}
+              title="Manage Addresses"
+              description="Add, edit, or remove your delivery addresses"
+              onClick={() => handleTabChange('addresses')}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Tab Content */}
+      <section className="tab-content py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">
+            {activeTab === 'profile' && 'Your Profile'}
+            {activeTab === 'orders' && 'Your Orders'}
+            {activeTab === 'addresses' && 'Your Addresses'}
+          </h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {activeTab === 'profile' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Profile Information</h3>
+                <p className="mb-2"><strong>Name:</strong> {buyer?.buyerFields?.name}</p>
+                <p className="mb-2"><strong>Email:</strong> {buyer?.email}</p>
+                <p className="mb-2"><strong>Address:</strong> {buyer?.buyerFields?.address}</p>
+                <p className="mb-2"><strong>Contact Number:</strong> {buyer?.buyerFields?.contactNumber}</p>
+              </div>
+            )}
+            {activeTab === 'orders' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Your Orders</h3>
+                {orders.length === 0 ? (
+                  <p>No orders found.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {orders.map((order) => (
+                      <div key={order._id} className="bg-gray-50 rounded-lg p-4 shadow">
+                        <h4 className="text-lg font-semibold mb-2">Order #{order._id}</h4>
+                        <p className="text-sm text-gray-600 mb-1">Date: {new Date(order.date).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-600">Total: ${order.totalAmount}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === 'addresses' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Your Addresses</h3>
+                {addresses.length === 0 ? (
+                  <p>No addresses found.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {addresses.map((address) => (
+                      <div key={address._id} className="bg-gray-50 rounded-lg p-4 shadow">
+                        <h4 className="text-lg font-semibold mb-2">{address.fullName}</h4>
+                        <p className="text-sm text-gray-600 mb-1">{address.address}</p>
+                        <p className="text-sm text-gray-600">{address.city}, {address.state} {address.pinCode}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+ {/* Call to Action */}
+ <section className="cta bg-gradient-to-r from-blue-600 to-green-600 text-white py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">Ready to Shop?</h2>
+          <p className="text-xl mb-10">Explore our amazing products and find great deals!</p>
+          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <Link to="/products" className="bg-white text-blue-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-blue-100 transition duration-300">
+              Browse Products
+            </Link>
+            <Link to="/cart" className="border-2 border-white text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-white hover:text-blue-600 transition duration-300">
+              View Cart
+            </Link>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  );
+};
+
+const FeatureCard = ({ icon: Icon, title, description, onClick }) => (
+  <div className="bg-gray-50 rounded-lg p-6 shadow-lg text-center cursor-pointer hover:bg-gray-100 transition duration-300" onClick={onClick}>
+    <Icon className="text-5xl text-blue-600 mb-4 mx-auto" />
+    <h3 className="text-2xl font-semibold mb-2">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
+
+export default BuyerProfile;
