@@ -1,20 +1,23 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useCallback } from 'react';
 
 const LoadingContext = createContext();
 
 export const LoadingProvider = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000); // 3 seconds delay for demonstration
+  const startLoading = useCallback((message = 'Loading...') => {
+    setIsLoading(true);
+    setLoadingMessage(message);
+  }, []);
 
-    return () => clearTimeout(timer);
+  const stopLoading = useCallback(() => {
+    setIsLoading(false);
+    setLoadingMessage('');
   }, []);
 
   return (
-    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+    <LoadingContext.Provider value={{ isLoading, loadingMessage, startLoading, stopLoading }}>
       {children}
     </LoadingContext.Provider>
   );

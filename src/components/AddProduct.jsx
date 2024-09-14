@@ -59,60 +59,48 @@ const AddProduct = () => {
   };
 
   const handleImageUpload = (e) => {
+    console.log("Files selected:", e.target.files);
     const files = Array.from(e.target.files);
-    setProduct({ ...product, images: files });
+    setProduct(prev => ({ ...prev, images: files }));
   };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationErrors = validateInputs(product);
-    if (Object.keys(validationErrors).length === 0) {
-      try {
-        const token = localStorage.getItem('token');
-        console.log('Token:', token); // Log token (remove in production)
+    const formData = new FormData();
   
-        const formData = new FormData();
-        Object.keys(product).forEach(key => {
-          if (key !== 'images') {
-            formData.append(key, product[key]);
-          }
-        });
-        product.images.forEach(image => {
-          formData.append('images', image);
-        });
-  
-        // Log FormData contents
-        for (let [key, value] of formData.entries()) {
-          console.log(key, value);
-        }
-  
-        console.log('Sending request to:', `${BASE_URL}/api/products`);
-  
-        const response = await axios.post(`${BASE_URL}/api/products`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-  
-        console.log('Product added successfully:', response.data);
-        toast.success('Product added successfully');
-        resetForm();
-      } catch (error) {
-        console.error('Error adding product:', error.response || error);
-        toast.error(error.response?.data?.message || 'Failed to add product');
-        
-        // Additional error logging
-        if (error.response) {
-          console.log('Error response status:', error.response.status);
-          console.log('Error response data:', error.response.data);
-        } else if (error.request) {
-          console.log('No response received:', error.request);
-        } else {
-          console.log('Error setting up request:', error.message);
-        }
+    // Append other product details
+    Object.keys(product).forEach(key => {
+      if (key !== 'images') {
+        formData.append(key, product[key]);
       }
-    } else {
-      setErrors(validationErrors);
+    });
+  
+    // Append images
+    product.images.forEach((image, index) => {
+      console.log(`Appending image ${index}:`, image);
+      formData.append('images', image);
+    });
+  
+    // Log the entire FormData for debugging
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ', ' + pair[1]);
+    }
+  
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${BASE_URL}/api/products`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      console.log('Product addition response:', response.data);
+      toast.success('Product added successfully');
+      // Reset form
+    } catch (error) {
+      console.error('Error adding product:', error.response || error);
+      toast.error(error.response?.data?.message || 'Failed to add product');
     }
   };
   
@@ -219,9 +207,7 @@ const AddProduct = () => {
 
   
 
-  const memoizedCategories = useMemo(() => categories, [categories]);
-  const memoizedItemTypes = useMemo(() => itemTypes, [itemTypes]);
-  const memoizedBrands = useMemo(() => brands, [brands]);
+  
  return (
     <div className="container mx-auto px-4 py-8">
       <Toaster position="top-right" />
@@ -455,16 +441,22 @@ const AddProduct = () => {
             </div>
 
             <div>
-              <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
-              <input
-                type="file"
-                id="images"
-                name="images"
-                multiple
-                onChange={handleImageUpload}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
+        <input
+          type="file"
+          id="images"
+          name="images"
+          multiple
+          onChange={handleImageUpload}
+          accept="image/*"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        {product.images.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm text-gray-500">{product.images.length} file(s) selected</p>
+          </div>
+        )}
+      </div>
 
             <button type="submit" className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition duration-300">
               Add Product

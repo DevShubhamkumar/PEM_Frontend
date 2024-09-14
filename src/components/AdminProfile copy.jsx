@@ -5,7 +5,7 @@ import { useAppContext } from './AppContext';
 
 
 const AdminProfile = () => {
-  const { user, isAuthenticated, loading: contextLoading, error: contextError, fetchUserProfile, updateUserProfile, fetchUsers, updateProfileImage } = useAppContext();
+  const { user, isAuthenticated, loading: contextLoading, error: contextError, fetchUserProfile, updateUserProfile, fetchUsers } = useAppContext();
   const [activeTab, setActiveTab] = useState('profile');
   const [editMode, setEditMode] = useState(false);
   const [adminProfileData, setAdminProfileData] = useState({

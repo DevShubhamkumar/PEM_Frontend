@@ -13,6 +13,7 @@ const HomePage = () => {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const location = useLocation();
   const { isLoading } = useLoading();
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,13 +35,13 @@ const HomePage = () => {
   const displayedCategories = showAllCategories ? categories : categories.slice(0, 8);
 
   if (isLoading) {
-    return null; // The global loading state will handle the preloader
+    return null; 
   }
 
   return (
     <div className="home-page w-full">
       {/* Hero Section */}
-      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-32">
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-32  ">
         <div className="container mx-auto px-4 z-10 relative">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Welcome to Our E-Marketplace</h1>
           <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Discover amazing products and services from trusted sellers worldwide</p>
@@ -85,7 +86,7 @@ const HomePage = () => {
 
       {/* Why Choose Us */}
       <section className="why-choose-us py-20 bg-white">
-        <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 w-full">
           <h2 className="text-4xl font-bold mb-16 text-center text-gray-800">Why Choose Our E-Marketplace?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
             <FeatureCard icon={FaGlobe} title="Global Reach" color="indigo" description="Connect with sellers and buyers from around the world, expanding your market opportunities." />

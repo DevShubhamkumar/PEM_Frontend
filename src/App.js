@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { LoadingProvider, useLoading } from './components/LoadingContext';
 import { AppProvider, useAppContext } from './components/AppContext';
@@ -33,7 +33,7 @@ import AdminUserProfileActivity from './components/AdminUserProfileActivity';
 import AdminProfile from './components/AdminProfile';
 import SellerProfile from './components/SellerProfile';
 import ForgotPassword from './components/ForgotPassword';
-import Preloader from './components/Preloader'; 
+import Preloader from './components/Preloader';
 
 const App = () => {
   return (
@@ -46,12 +46,13 @@ const App = () => {
     </AppProvider>
   );
 };
+
 const AppContent = () => {
   const { isLoading } = useLoading();
   const { isAuthenticated, user, logout, authCheckComplete } = useAppContext();
 
-  if (isLoading || !authCheckComplete) {
-    return <Preloader />; // Use the new Preloader component
+  if (!authCheckComplete) {
+    return <Preloader />;
   }
 
   const renderNavbar = () => {

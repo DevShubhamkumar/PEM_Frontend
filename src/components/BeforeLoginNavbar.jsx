@@ -31,6 +31,7 @@ const ShakeableNavLink = styled(NavLink)`
   animation: ${props => props.shake ? shakeAnimation : 'none'} 0.5s;
 `;
 
+
 const AnimatedDropdown = styled.ul`
   animation: ${fadeInAnimation} 0.3s ease-out;
   background: rgba(255, 255, 255, 0.7);
@@ -38,7 +39,13 @@ const AnimatedDropdown = styled.ul`
   border-radius: 10px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 1000; // Increased z-index
+
+  @media (max-width: 768px) {
+    background: white;
+  }
 `;
+
 
 const NoResultsMessage = styled.div`
   display: flex;
@@ -72,7 +79,7 @@ const MobileMenu = styled.div`
   left: 0;
   right: 0;
   padding: 1rem;
-  z-index: 50;
+  z-index: 100; // Increased z-index, but lower than AnimatedDropdown
   transition: all 0.3s ease-in-out;
   opacity: ${props => props.isOpen ? 1 : 0};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-20px)'};

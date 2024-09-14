@@ -1,5 +1,4 @@
-import React, { createContext, useReducer, useContext, useCallback, useMemo, useEffect, useState, useRef } from 'react';
-
+import React, { createContext, useReducer, useContext, useCallback, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { BASE_URL } from '../api';
 
@@ -8,8 +7,9 @@ const AppContext = createContext();
 const initialState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true,
   error: null,
+  authCheckComplete: false,
   searchTerm: '',
   searchResults: { categories: [], products: [] },
   categoryInfo: null,
@@ -21,38 +21,48 @@ const initialState = {
   itemTypes: [],
   brands: [],
   orders: [],
+  profileImage: null,
 };
 
 function appReducer(state, action) {
   switch (action.type) {
+    case 'AUTH_CHECK_START':
+      return { ...state, loading: true, authCheckComplete: false };
+    case 'AUTH_CHECK_COMPLETE':
+      return { ...state, loading: false, authCheckComplete: true };
     case 'LOGIN_START':
       return { ...state, loading: true, error: null };
     case 'LOGIN_SUCCESS':
       return { ...state, user: action.payload, isAuthenticated: true, loading: false, error: null };
     case 'LOGIN_FAILURE':
-      return { ...state, loading: false, error: action.payload, isAuthenticated: false };
+      return { ...state, loading: false, error: action.payload };
     case 'LOGOUT':
-      return { ...state, user: null, isAuthenticated: false, cart: [] };
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
+      return { ...initialState, authCheckComplete: true };
     case 'SET_ERROR':
-      return { ...state, error: action.payload };
+      return { ...state, error: action.payload, loading: false };
+    case 'SET_USER':
+      return { ...state, user: action.payload, loading: false, error: null };
+    case 'UPDATE_PROFILE_IMAGE':
+      return { ...state, error: action.payload, loading: false };
     case 'SET_SEARCH_TERM':
       return { ...state, searchTerm: action.payload };
     case 'SET_SEARCH_RESULTS':
-      return { ...state, searchResults: action.payload };
+      return { ...state, searchResults: action.payload, loading: false, error: null };
     case 'SET_CATEGORY_INFO':
       return { ...state, categoryInfo: action.payload };
     case 'SET_CATEGORIES_PAGE':
       return { ...state, categoriesPage: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
     case 'ADD_TO_CART':
       return { ...state, cart: [...state.cart, action.payload] };
     case 'REMOVE_FROM_CART':
       return { ...state, cart: state.cart.filter(item => item.id !== action.payload) };
     case 'CLEAR_CART':
       return { ...state, cart: [] };
-    case 'SET_USERS':
-      return { ...state, users: action.payload };
+    case 'SET_USER':
+      return { ...state, user: action.payload, loading: false, error: null };
+  
     case 'SET_PRODUCTS':
       return { ...state, products: action.payload };
     case 'SET_CATEGORIES':
@@ -63,6 +73,8 @@ function appReducer(state, action) {
       return { ...state, brands: action.payload };
     case 'SET_ORDERS':
       return { ...state, orders: action.payload };
+    case 'UPDATE_PROFILE_IMAGE':
+      return { ...state, profileImage: action.payload };
     default:
       return state;
   }
@@ -70,29 +82,29 @@ function appReducer(state, action) {
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const categoriesCache = useRef(null);
   const categoriesPromise = useRef(null);
   const searchCache = useRef({});
   const userProfileCache = useRef(null);
   const usersCache = useRef(null);
   const reportsCache = useRef(null);
-
+  
   const verifyTokenAndFetchUser = useCallback(async () => {
+    dispatch({ type: 'AUTH_CHECK_START' });
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
-
+  
     if (!token || !userId) {
       dispatch({ type: 'LOGOUT' });
-      setAuthCheckComplete(true);
+      dispatch({ type: 'AUTH_CHECK_COMPLETE' });
       return;
     }
-
+  
     try {
       const response = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
+  
       if (response.data) {
         dispatch({ 
           type: 'LOGIN_SUCCESS', 
@@ -105,14 +117,11 @@ export function AppProvider({ children }) {
     } catch (error) {
       console.error('Error verifying token and fetching user data:', error);
       dispatch({ type: 'LOGOUT' });
+      dispatch({ type: 'SET_ERROR', payload: error.message });
     } finally {
-      setAuthCheckComplete(true);
+      dispatch({ type: 'AUTH_CHECK_COMPLETE' });
     }
   }, []);
-
-  useEffect(() => {
-    verifyTokenAndFetchUser();
-  }, [verifyTokenAndFetchUser]);
 
   const login = useCallback(async (credentials) => {
     dispatch({ type: 'LOGIN_START' });
@@ -145,6 +154,9 @@ export function AppProvider({ children }) {
     delete axios.defaults.headers.common['Authorization'];
     dispatch({ type: 'LOGOUT' });
   }, []);
+  useEffect(() => {
+    verifyTokenAndFetchUser();
+  }, [verifyTokenAndFetchUser]);
 
   const setSearchTerm = useCallback((term) => {
     dispatch({ type: 'SET_SEARCH_TERM', payload: term });
@@ -207,8 +219,6 @@ export function AppProvider({ children }) {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch search results. Please try again.' });
       console.error('Search error:', error);
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
@@ -230,40 +240,46 @@ export function AppProvider({ children }) {
   }, []);
 
   const fetchUserProfile = useCallback(async () => {
-    if (userProfileCache.current) {
-      dispatch({ type: 'SET_USER', payload: userProfileCache.current });
-      return userProfileCache.current;
+  if (userProfileCache.current) {
+    dispatch({ type: 'SET_USER', payload: userProfileCache.current });
+    return userProfileCache.current;
+  }
+
+  dispatch({ type: 'SET_LOADING', payload: true });
+  try {
+    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('token');
+    if (!userId || !token) {
+      throw new Error('User ID or token not found');
     }
 
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
-      if (!userId || !token) {
-        throw new Error('User ID or token not found');
-      }
+    const response = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      const response = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      userProfileCache.current = response.data;
-      dispatch({ type: 'SET_USER', payload: response.data });
-      return response.data;
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch user profile' });
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  }, []);
+    userProfileCache.current = response.data;
+    dispatch({ type: 'SET_USER', payload: response.data });
+    return response.data;
+  } catch (error) {
+    dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch user profile' });
+    throw error;
+  } finally {
+    dispatch({ type: 'SET_LOADING', payload: false });
+  }
+}, []);
 
   const updateUserProfile = useCallback(async (formData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      const userType = localStorage.getItem('userRole');
+      const endpoint = userType === 'admin' 
+        ? `${BASE_URL}/api/admin/profile` 
+        : `${BASE_URL}/api/sellers/${userId}/profile`;
+      
       const response = await axios.put(
-        `${BASE_URL}/api/users/profile`,
+        endpoint,
         formData,
         {
           headers: {
@@ -272,18 +288,17 @@ export function AppProvider({ children }) {
           },
         }
       );
-
-      userProfileCache.current = response.data;
+  
       dispatch({ type: 'SET_USER', payload: response.data });
       return response.data;
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to update user profile' });
+      dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || error.message || 'Failed to update user profile' });
       throw error;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
-
+  
   const fetchUsers = useCallback(async () => {
     if (usersCache.current) {
       return usersCache.current;
@@ -302,8 +317,6 @@ export function AppProvider({ children }) {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch users' });
       throw error;
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
@@ -346,8 +359,6 @@ export function AppProvider({ children }) {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to fetch admin reports' });
       throw error;
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
@@ -411,6 +422,7 @@ export function AppProvider({ children }) {
       throw error;
     }
   }, [state.orders]);
+
   const deleteProduct = useCallback(async (productId) => {
     try {
       const token = localStorage.getItem('token');
@@ -452,11 +464,11 @@ export function AppProvider({ children }) {
       throw error;
     }
   }, [state.products]);
-
-  const contextValue = useMemo(() => ({
+ const contextValue = useMemo(() => ({
     ...state,
     login,
     logout,
+    verifyTokenAndFetchUser,
     setSearchTerm,
     setCategoriesPage,
     fetchCategories,
@@ -471,14 +483,11 @@ export function AppProvider({ children }) {
     fetchAdminReports,
     fetchAdminData,
     fetchOrders,
-    updateOrderStatus,
-    deleteProduct,
-    toggleProductStatus,
-    authCheckComplete,
   }), [
     state,
     login,
     logout,
+    verifyTokenAndFetchUser,
     setSearchTerm,
     setCategoriesPage,
     fetchCategories,
@@ -493,10 +502,6 @@ export function AppProvider({ children }) {
     fetchAdminReports,
     fetchAdminData,
     fetchOrders,
-    updateOrderStatus,
-    deleteProduct,
-    toggleProductStatus,
-    authCheckComplete,
   ]);
 
   return (

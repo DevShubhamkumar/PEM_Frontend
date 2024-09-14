@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaUserCircle, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAppContext } from './AppContext';
 import styled, { keyframes } from 'styled-components';
 
 export const BASE_URL = 'https://pem-backend.onrender.com';
@@ -83,36 +84,28 @@ const HamburgerButton = styled.button`
     }
   }
 `;
-
 const AdminNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [adminData, setAdminData] = useState(null);
   const [profilePicUrl, setProfilePicUrl] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+  const { user, fetchUserProfile } = useAppContext();
 
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const userId = localStorage.getItem('userId');
-        const token = localStorage.getItem('token');
-        if (!userId || !token) {
-          throw new Error('User ID or token not found');
+        if (!user) {
+          await fetchUserProfile();
+        } else {
+          setAdminData(user);
+          const profilePictureUrl = user.profilePicture
+            ? user.profilePicture.startsWith('http')
+              ? user.profilePicture
+              : `${BASE_URL}/${user.profilePicture}`
+            : '';
+          setProfilePicUrl(profilePictureUrl);
         }
-
-        const profileResponse = await axios.get(`${BASE_URL}/api/admins/${userId}/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const profileData = profileResponse.data || {};
-
-        setAdminData(profileData);
-        const profilePictureUrl = profileData.profilePicture
-          ? profileData.profilePicture.startsWith('http')
-            ? profileData.profilePicture
-            : `${BASE_URL}/${profileData.profilePicture}`
-          : '';
-        setProfilePicUrl(profilePictureUrl);
       } catch (error) {
         console.error('Error fetching admin profile:', error);
       }
@@ -129,7 +122,7 @@ const AdminNavbar = ({ handleLogout }) => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [user, fetchUserProfile]);
 
   const toggleMenu = useCallback(() => {
     setIsOpen(prevState => !prevState);
@@ -173,7 +166,10 @@ const AdminNavbar = ({ handleLogout }) => {
             </NavLink>
             <div className="relative">
               {profilePicUrl ? (
-                <img src={profilePicUrl} alt="Profile" className="w-8 h-8 rounded-full" />
+                <img src={profilePicUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/32';
+                }} />
               ) : (
                 <FaUserCircle className="w-8 h-8 text-gray-500" />
               )}
