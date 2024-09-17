@@ -9,7 +9,7 @@ const initialState = {
   isAuthenticated: false,
   loading: true,
   error: null,
-  authCheckComplete: false,
+  authCheckComplete: false, 
   searchTerm: '',
   searchResults: { categories: [], products: [] },
   categoryInfo: null,
@@ -23,7 +23,6 @@ const initialState = {
   orders: [],
   profileImage: null,
 };
-
 function appReducer(state, action) {
   switch (action.type) {
     case 'AUTH_CHECK_START':
@@ -37,12 +36,8 @@ function appReducer(state, action) {
     case 'LOGIN_FAILURE':
       return { ...state, loading: false, error: action.payload };
     case 'LOGOUT':
-      return { ...initialState, authCheckComplete: true };
+      return { ...state, user: null, isAuthenticated: false, cart: [] };
     case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
-    case 'SET_USER':
-      return { ...state, user: action.payload, loading: false, error: null };
-    case 'UPDATE_PROFILE_IMAGE':
       return { ...state, error: action.payload, loading: false };
     case 'SET_SEARCH_TERM':
       return { ...state, searchTerm: action.payload };

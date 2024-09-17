@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast, Toaster } from 'react-hot-toast';
 import { PlusIcon, TrashIcon } from 'lucide-react';
 import { BASE_URL } from '../api';
-
 
 const AddProduct = () => {
   const [product, setProduct] = useState({
@@ -12,12 +11,11 @@ const AddProduct = () => {
     price: '',
     stock: '',
     discount: '',
-    images: [],
     category: '',
     itemType: '',
     brand: '',
-    status: 'pending',
   });
+  const [images, setImages] = useState([]);
   const [categories, setCategories] = useState([]);
   const [itemTypes, setItemTypes] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -25,6 +23,8 @@ const AddProduct = () => {
   const [newItemType, setNewItemType] = useState('');
   const [newBrand, setNewBrand] = useState('');
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const formData = new FormData();
 
   useEffect(() => {
     fetchData();
@@ -58,68 +58,7 @@ const AddProduct = () => {
     setProduct({ ...product, [e.target.name]: e.target.value });
   };
 
-  const handleImageUpload = (e) => {
-    console.log("Files selected:", e.target.files);
-    const files = Array.from(e.target.files);
-    setProduct(prev => ({ ...prev, images: files }));
-  };
   
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-  
-    // Append other product details
-    Object.keys(product).forEach(key => {
-      if (key !== 'images') {
-        formData.append(key, product[key]);
-      }
-    });
-  
-    // Append images
-    product.images.forEach((image, index) => {
-      console.log(`Appending image ${index}:`, image);
-      formData.append('images', image);
-    });
-  
-    // Log the entire FormData for debugging
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ', ' + pair[1]);
-    }
-  
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${BASE_URL}/api/products`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      console.log('Product addition response:', response.data);
-      toast.success('Product added successfully');
-      // Reset form
-    } catch (error) {
-      console.error('Error adding product:', error.response || error);
-      toast.error(error.response?.data?.message || 'Failed to add product');
-    }
-  };
-  
-  const resetForm = () => {
-    setProduct({
-      name: '',
-      description: '',
-      price: '',
-      stock: '',
-      discount: '',
-      images: [],
-      category: '',
-      itemType: '',
-      brand: '',
-      status: 'pending',
-    });
-    setErrors({});
-  };
-
   const validateInputs = (values) => {
     let errors = {};
     if (!values.name.trim()) errors.name = 'Name is required';
@@ -131,15 +70,73 @@ const AddProduct = () => {
     if (!values.brand) errors.brand = 'Brand is required';
     return errors;
   };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData();
+
+    // Append all product fields to formData
+    Object.keys(product).forEach(key => {
+      formData.append(key, product[key]);
+    });
+
+    // Append each image file to formData
+    images.forEach((image, index) => {
+      formData.append('images', image);
+    });
+
+    try {
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/products`, formData, config);
+
+      console.log('Product addition response:', response.data);
+      toast.success('Product added successfully');
+
+      // Reset form
+      setProduct({
+        name: '',
+        description: '',
+        price: '',
+        stock: '',
+        discount: '',
+        category: '',
+        itemType: '',
+        brand: '',
+      });
+      setImages([]);
+    } catch (error) {
+      console.error('Error adding product:', error.response || error);
+      toast.error(error.response?.data?.message || 'Failed to add product');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+
+
+  const handleImageChange = useCallback((e) => {
+    const files = Array.from(e.target.files);
+    console.log('Selected files:', files);
+    setImages(files);
+  }, []);
 
   const handleCreateCategory = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${BASE_URL}/api/categories`, 
-        { name: newCategory },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await axios.post(`${BASE_URL}/api/products`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCategories([...categories, response.data]);
       setNewCategory('');
       toast.success('Category created successfully');
@@ -205,15 +202,13 @@ const AddProduct = () => {
     }
   };
 
-  
-
-  
- return (
+  return (
     <div className="container mx-auto px-4 py-8">
       <Toaster position="top-right" />
       <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Product Management</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Left column: Categories, Item Types, and Brands sections */}
         <div className="space-y-8">
           {/* Categories Section */}
           <section className="bg-white rounded-lg shadow-md p-6">
@@ -306,10 +301,10 @@ const AddProduct = () => {
           </section>
         </div>
 
-        {/* Add New Product Form */}
+        {/* Right column: Add New Product Form */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-6 text-indigo-600">Add New Product</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
@@ -361,111 +356,118 @@ const AddProduct = () => {
                   name="stock"
                   value={product.stock}
                   onChange={handleChange}
-                  required
+                  requiredclassName="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
+                </div>
+              </div>
+  
+              <div>
+                <label htmlFor="discount" className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+                <input
+                  type="number"
+                  id="discount"
+                  name="discount"
+                  value={product.discount}
+                  onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="discount" className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+  
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  id="category"
+                  name="category"
+                  value={product.category}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
+              </div>
+  
+              <div>
+                <label htmlFor="itemType" className="block text-sm font-medium text-gray-700 mb-1">Item Type</label>
+                <select
+                  id="itemType"
+                  name="itemType"
+                  value={product.itemType}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select an item type</option>
+                  {itemTypes.map((itemType) => (
+                    <option key={itemType._id} value={itemType._id}>
+                      {itemType.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.itemType && <p className="text-red-500 text-xs mt-1">{errors.itemType}</p>}
+              </div>
+  
+              <div>
+                <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                <select
+                  id="brand"
+                  name="brand"
+                  value={product.brand}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select a brand</option>
+                  {brands.map((brand) => (
+                    <option key={brand._id} value={brand._id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.brand && <p className="text-red-500 text-xs mt-1">{errors.brand}</p>}
+              </div>
+  
+              <div>
+              <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
               <input
-                type="number"
-                id="discount"
-                name="discount"
-                value={product.discount}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                id="category"
-                name="category"
-                value={product.category}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category._id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="itemType" className="block text-sm font-medium text-gray-700 mb-1">Item Type</label>
-              <select
-                id="itemType"
-                name="itemType"
-                value={product.itemType}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select an item type</option>
-                {itemTypes.map((itemType) => (
-                  <option key={itemType._id} value={itemType._id}>
-                    {itemType.name}
-                  </option>
-                ))}
-              </select>
-              {errors.itemType && <p className="text-red-500 text-xs mt-1">{errors.itemType}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-              <select
-                id="brand"
-                name="brand"
-                value={product.brand}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select a brand</option>
-                {brands.map((brand) => (
-                  <option key={brand._id} value={brand._id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-              {errors.brand && <p className="text-red-500 text-xs mt-1">{errors.brand}</p>}
-            </div>
-
-            <div>
-            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">Images</label>
-        <input
-          type="file"
-          id="images"
-          name="images"
-          multiple
-          onChange={handleImageUpload}
-          accept="image/*"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        {product.images.length > 0 && (
+  type="file"
+  id="images"
+  name="images"
+  multiple
+  onChange={handleImageChange}
+  accept="image/*"
+  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+/>
+        {images.length > 0 && (
           <div className="mt-2">
-            <p className="text-sm text-gray-500">{product.images.length} file(s) selected</p>
+            <p className="text-sm text-gray-500">{images.length} file(s) selected</p>
+            <ul className="list-disc list-inside">
+              {images.map((file, index) => (
+                <li key={index} className="text-sm text-gray-500">{file.name}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
-
-            <button type="submit" className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition duration-300">
-              Add Product
-            </button>
-          </form>
+      <button 
+        type="submit" 
+        className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition duration-300"
+        disabled={loading}
+      >
+        {loading ? 'Adding Product...' : 'Add Product'}
+      </button>
+    </form>
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
-
-export default AddProduct;
+    )
+  };
+  
+  export default AddProduct;

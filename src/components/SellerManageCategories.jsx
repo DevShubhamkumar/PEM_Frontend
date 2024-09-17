@@ -210,30 +210,47 @@ const ManageCategories = () => {
     setCategoryName(e.target.value);
   }, []);
 
+  const handleCategoryImageChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      console.log('Image selected:', file.name);
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      setCategoryImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    } else {
+      console.log('No image selected');
+    }
+  }, []);
+  
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
+    console.log('handleUpdateSubmit started');
     setLoading(true);
     setError(null);
     setSuccessMessage('');
   
     const formData = new FormData();
-    formData.append('name', categoryName);
+    formData.append('name', categoryName.trim());
+    console.log('Category name appended:', categoryName.trim());
+  
     if (categoryImage) {
       formData.append('categoryImage', categoryImage);
-      console.log('Category image appended:', categoryImage);
+      console.log('Category image appended:', categoryImage.name);
     }
   
     try {
       const token = localStorage.getItem('token');
-      const url = updatingCategory._id === 'new' 
+      
+      const url = updatingCategory._id === 'new'
         ? `${BASE_URL}/api/categories`
         : `${BASE_URL}/api/categories/${updatingCategory._id}`;
-      
+  
       const method = updatingCategory._id === 'new' ? 'post' : 'put';
   
-      console.log('Sending request to:', url);
-      console.log('FormData contents:', [...formData.entries()]);
-  
+      console.log('Sending request to server...');
       const response = await axios({
         method: method,
         url: url,
@@ -243,31 +260,47 @@ const ManageCategories = () => {
           Authorization: `Bearer ${token}`,
         },
       });
+      
+      console.log('Server response:', response);
   
-      console.log('Server response:', response.data);
-
-      setSuccessMessage(updatingCategory._id === 'new' ? 'Category created successfully' : 'Category updated successfully');
-      setIsUpdating(false);
-      setUpdatingCategory(null);
-      setCategoryName('');
-      setCategoryImage(null);
-      setImagePreview(null);
-      fetchCategories();
+      if (response.data && response.data._id) {
+        console.log('Valid response received, updating categories');
+        
+        setCategories(prevCategories => {
+          if (updatingCategory._id === 'new') {
+            return [...prevCategories, response.data];
+          } else {
+            return prevCategories.map(cat =>
+              cat._id === response.data._id ? response.data : cat
+            );
+          }
+        });
+  
+        setSuccessMessage(updatingCategory._id === 'new' ? 'Category created successfully' : 'Category updated successfully');
+        setIsUpdating(false);
+        setUpdatingCategory(null);
+        setCategoryName('');
+        setCategoryImage(null);
+        setImagePreview(response.data.categoryImage || null);
+      } else {
+        throw new Error('Invalid server response');
+      }
     } catch (error) {
       console.error('Error updating/creating category:', error);
-      setError(error.response?.data?.message || 'An error occurred while updating/creating the category');
+      setError(error.response?.data?.message || error.message || 'An error occurred while updating/creating the category');
     } finally {
       setLoading(false);
+      console.log('handleUpdateSubmit finished');
     }
   };
 
-  const handleCategoryImageChange = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setCategoryImage(file);
-      setImagePreview(URL.createObjectURL(file));
+
+  const renderCategoryImage = (imageUrl) => {
+    if (imageUrl && imageUrl.startsWith('http')) {
+      return <img src={imageUrl} alt="Category" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />;
     }
-  }, []);
+    return <div style={{ width: '50px', height: '50px', backgroundColor: '#ccc' }}></div>;
+  };
 
   return (
     <Container>
@@ -276,7 +309,7 @@ const ManageCategories = () => {
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
       {isUpdating ? (
-        <Form onSubmit={handleUpdateSubmit}>
+        <Form onSubmit={handleUpdateSubmit} encType="multipart/form-data">
           <div>
             {imagePreview && <img src={imagePreview} alt="Category preview" />}
           </div>
@@ -286,7 +319,7 @@ const ManageCategories = () => {
               id="categoryName"
               type="text"
               value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
+              onChange={handleCategoryNameChange}
               placeholder="Category Name"
               required
             />
@@ -298,11 +331,10 @@ const ManageCategories = () => {
               type="file"
               onChange={handleCategoryImageChange}
               accept="image/*"
-              required
             />
           </div>
           <div>
-            <Button type="submit" disabled={loading || !categoryName.trim() || !categoryImage}>
+            <Button type="submit" disabled={loading || !categoryName.trim()}>
               <FaSave style={{ marginRight: '5px' }} /> Save
             </Button>
             <Button type="button" onClick={handleCancelUpdate} disabled={loading}>
@@ -314,7 +346,7 @@ const ManageCategories = () => {
         <CategoryList>
           {categories.map((category) => (
             <CategoryItem key={category._id}>
-              <img src={category.categoryImage} alt={category.name} />
+              {renderCategoryImage(category.categoryImage)}
               <span>{category.name}</span>
               <Button onClick={() => handleUpdateCategory(category)}>
                 <FaEdit style={{ marginRight: '5px' }} /> Update
