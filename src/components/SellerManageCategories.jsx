@@ -154,7 +154,7 @@ const LoadingSpinner = styled.div`
     100% { transform: rotate(360deg); }
   }
 `;
-const ManageCategories = () => {
+const SellerManageCategories = () => {
   const [categories, setCategories] = useState([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatingCategory, setUpdatingCategory] = useState(null);
@@ -187,113 +187,99 @@ const ManageCategories = () => {
     }
   };
 
-  const handleUpdateCategory = useCallback((category) => {
+  const handleUpdateSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccessMessage('');
+
+    const formData = new FormData();
+    formData.append('name', categoryName.trim());
+    if (categoryImage) {
+      formData.append('image', categoryImage);
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+
+      let response;
+      if (updatingCategory._id === 'new') {
+        response = await axios.post(`${BASE_URL}/api/categories`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        response = await axios.put(`${BASE_URL}/api/categories/${updatingCategory._id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      if (response.data && response.data._id) {
+        setCategories(prevCategories => {
+          if (updatingCategory._id === 'new') {
+            return [...prevCategories, response.data];
+          } else {
+            return prevCategories.map(category =>
+              category._id === response.data._id ? response.data : category
+            );
+          }
+        });
+
+        setSuccessMessage('Category updated successfully');
+        setIsUpdating(false);
+        setUpdatingCategory(null);
+        setCategoryName('');
+        setCategoryImage(null);
+        setImagePreview(null);
+      } else {
+        throw new Error('Invalid server response');
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred while updating the category');
+    } finally {
+      setLoading(false);
+    }
+  }, [categoryName, categoryImage, updatingCategory]);
+
+  const handleUpdateCategory = (category) => {
     setIsUpdating(true);
     setUpdatingCategory(category);
     setCategoryName(category.name);
     setImagePreview(category.categoryImage);
-    setError(null);
-    setSuccessMessage('');
-  }, []);
+  };
 
-  const handleCancelUpdate = useCallback(() => {
+  const handleCancelUpdate = () => {
     setIsUpdating(false);
     setUpdatingCategory(null);
     setCategoryName('');
     setCategoryImage(null);
     setImagePreview(null);
-    setError(null);
-    setSuccessMessage('');
-  }, []);
-
-  const handleCategoryNameChange = useCallback((e) => {
-    setCategoryName(e.target.value);
-  }, []);
-
-  const handleCategoryImageChange = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      console.log('Image selected:', file.name);
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
-        return;
-      }
-      setCategoryImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    } else {
-      console.log('No image selected');
-    }
-  }, []);
-  
-  const handleUpdateSubmit = async (e) => {
-    e.preventDefault();
-    console.log('handleUpdateSubmit started');
-    setLoading(true);
-    setError(null);
-    setSuccessMessage('');
-  
-    const formData = new FormData();
-    formData.append('name', categoryName.trim());
-    console.log('Category name appended:', categoryName.trim());
-  
-    if (categoryImage) {
-      formData.append('categoryImage', categoryImage);
-      console.log('Category image appended:', categoryImage.name);
-    }
-  
-    try {
-      const token = localStorage.getItem('token');
-      
-      const url = updatingCategory._id === 'new'
-        ? `${BASE_URL}/api/categories`
-        : `${BASE_URL}/api/categories/${updatingCategory._id}`;
-  
-      const method = updatingCategory._id === 'new' ? 'post' : 'put';
-  
-      console.log('Sending request to server...');
-      const response = await axios({
-        method: method,
-        url: url,
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      console.log('Server response:', response);
-  
-      if (response.data && response.data._id) {
-        console.log('Valid response received, updating categories');
-        
-        setCategories(prevCategories => {
-          if (updatingCategory._id === 'new') {
-            return [...prevCategories, response.data];
-          } else {
-            return prevCategories.map(cat =>
-              cat._id === response.data._id ? response.data : cat
-            );
-          }
-        });
-  
-        setSuccessMessage(updatingCategory._id === 'new' ? 'Category created successfully' : 'Category updated successfully');
-        setIsUpdating(false);
-        setUpdatingCategory(null);
-        setCategoryName('');
-        setCategoryImage(null);
-        setImagePreview(response.data.categoryImage || null);
-      } else {
-        throw new Error('Invalid server response');
-      }
-    } catch (error) {
-      console.error('Error updating/creating category:', error);
-      setError(error.response?.data?.message || error.message || 'An error occurred while updating/creating the category');
-    } finally {
-      setLoading(false);
-      console.log('handleUpdateSubmit finished');
-    }
   };
 
+  const handleCategoryNameChange = (e) => {
+    setCategoryName(e.target.value);
+  };
+
+  const handleCategoryImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCategoryImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const renderCategoryImage = (imageUrl) => {
     if (imageUrl && imageUrl.startsWith('http')) {
@@ -364,4 +350,4 @@ const ManageCategories = () => {
   );
 };
 
-export default ManageCategories;
+export default SellerManageCategories;

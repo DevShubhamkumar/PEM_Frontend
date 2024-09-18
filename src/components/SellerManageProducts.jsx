@@ -1,10 +1,9 @@
-// Export the BASE_URL
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { BASE_URL } from '../api';
+
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
@@ -193,6 +192,36 @@ const ExpandableText = styled.span`
   }
 `;
 
+const ImagePreviewContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+`;
+
+const ImagePreview = styled.div`
+  position: relative;
+  width: 100px;
+  height: 100px;
+`;
+
+const RemoveImageButton = styled.button`
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(231, 76, 60, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const SellerManageProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -214,10 +243,16 @@ const SellerManageProducts = () => {
   const [expandedFields, setExpandedFields] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [imagePreview, setImagePreview] = useState([]);
 
   useEffect(() => {
     fetchData();
   }, []);
+  
+  useEffect(() => {
+    // This effect will run whenever the products state changes
+    console.log("Products updated:", products);
+  }, [products]);
 
   const fetchData = async () => {
     try {
@@ -241,11 +276,17 @@ const SellerManageProducts = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${BASE_URL}/api/products/${id}`);
+      setIsLoading(true);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${BASE_URL}/api/products/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setProducts(products.filter((product) => product._id !== id));
+      setIsLoading(false);
     } catch (error) {
       console.error('Error deleting product:', error);
       setError('Failed to delete product. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -262,47 +303,102 @@ const SellerManageProducts = () => {
       brand: product.brand?._id || '',
       images: product.images || [],
     });
+    setImagePreview(product.images || []);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setFormData({ ...formData, images: [...formData.images, ...files] });
+    setFormData(prevData => ({ ...prevData, images: [...prevData.images, ...files] }));
+    
+    // Create preview URLs for new images
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreview(prevPreviews => [...prevPreviews, ...newPreviews]);
   };
-
-  const handleUpdate = async () => {
+  
+  const handleRemoveImage = (index) => {
+    setFormData(prevData => ({
+      ...prevData,
+      images: prevData.images.filter((_, i) => i !== index)
+    }));
+    setImagePreview(prevPreviews => prevPreviews.filter((_, i) => i !== index));
+  };
+  const handleUpdate = useCallback(async () => {
     try {
-      const formDataWithImages = new FormData();
-      for (const key in formData) {
-        if (key === 'images') {
-          for (const image of formData.images) {
-            formDataWithImages.append('images', image);
-          }
-        } else {
-          formDataWithImages.append(key, formData[key]);
-        }
-      }
-
-      const token = localStorage.getItem('token');
-      await axios.put(`${BASE_URL}/api/products/${editingProduct._id}`, formDataWithImages, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
+      setIsLoading(true);
+      const formDataToSend = new FormData();
+      
+      // Append text fields
+      const textFields = ['name', 'description', 'price', 'stock', 'discount', 'category', 'itemType', 'brand'];
+      textFields.forEach(field => {
+        formDataToSend.append(field, formData[field] || editingProduct[field]);
       });
-
-      setEditingProduct(null);
-      fetchData();
+  
+      // Handle existing images
+      const existingImages = editingProduct.images || [];
+      formDataToSend.append('existingImages', JSON.stringify(existingImages));
+  
+      // Handle new images
+      if (formData.images && formData.images.length > 0) {
+        formData.images.forEach((image, index) => {
+          if (image instanceof File) {
+            formDataToSend.append('newImages', image);
+          }
+        });
+      }
+  
+      console.log("FormData being sent:", Object.fromEntries(formDataToSend));
+  
+      const token = localStorage.getItem('token');
+      console.log("Token being sent:", token);
+  
+      const response = await axios.put(
+        `${BASE_URL}/api/products/${editingProduct._id}`,
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      console.log("Server response:", response.data);
+  
+      if (response.data) {
+        setProducts(prevProducts => 
+          prevProducts.map(product => 
+            product._id === editingProduct._id ? response.data : product
+          )
+        );
+        
+        setEditingProduct(null);
+        setFormData({
+          name: '',
+          description: '',
+          price: '',
+          stock: '',
+          discount: '',
+          category: '',
+          itemType: '',
+          brand: '',
+          images: [],
+        });
+        setImagePreview([]);
+      }
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error updating product:', error);
-      setError('Failed to update product. Please try again.');
+      console.error('Detailed frontend error:', error.response?.data || error);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      setError(`Failed to update product: ${error.response?.data?.message || error.message}`);
+      setIsLoading(false);
     }
-  };
-
+  }, [formData, editingProduct]);
+  
   const handleCancelEdit = () => {
     setEditingProduct(null);
     setFormData({
@@ -316,6 +412,7 @@ const SellerManageProducts = () => {
       brand: '',
       images: [],
     });
+    setImagePreview([]);
   };
 
   const handleFilterChange = (e) => {
@@ -374,8 +471,7 @@ const SellerManageProducts = () => {
 
   if (error) {
     return <div>Error: {error}</div>;
-  }
-  return (
+  }return (
     <Container>
       <Header>Manage Products</Header>
       <Actions>
@@ -506,6 +602,19 @@ const SellerManageProducts = () => {
               </option>
             ))}
           </Select>
+          <ImagePreviewContainer>
+            {imagePreview.map((image, index) => (
+              <ImagePreview key={index}>
+                <ProductImage 
+                  src={typeof image === 'string' ? image : URL.createObjectURL(image)} 
+                  alt={`Product ${index}`} 
+                />
+                <RemoveImageButton onClick={() => handleRemoveImage(index)}>
+                  ×
+                </RemoveImageButton>
+              </ImagePreview>
+            ))}
+          </ImagePreviewContainer>
           <Input
             type="file"
             name="images"
@@ -548,14 +657,19 @@ const SellerManageProducts = () => {
                 <TableCell>{product.stock || 0}</TableCell>
                 <TableCell>{product.discount || 0}%</TableCell>
                 <TableCell>
-  {(product.images || []).map((imagePath, index) => (
-    <ProductImage
-      key={index}
-      src={`${BASE_URL}/${imagePath}`}
-      alt={`Product ${index + 1}`}
-    />
-  ))}
-</TableCell>
+                  {(product.images || []).map((imagePath, index) => (
+               <ProductImage
+               key={index}
+               src={imagePath}
+               alt={`Product ${index + 1}`}
+               onError={(e) => {
+                 console.error("Error loading image:", imagePath);
+                 e.target.src = "https://via.placeholder.com/60"; // Fallback image
+               }}
+               onLoad={() => console.log("Image loaded successfully:", imagePath)}
+             />
+                  ))}
+                </TableCell>
                 <TableCell>{product.category?.name || 'N/A'}</TableCell>
                 <TableCell>{product.itemType?.name || 'N/A'}</TableCell>
                 <TableCell>{product.brand?.name || 'N/A'}</TableCell>
@@ -571,7 +685,7 @@ const SellerManageProducts = () => {
             ))}
           </tbody>
         </Table>
-      )}
+      )}ƒ
     </Container>
   );
 };
