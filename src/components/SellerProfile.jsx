@@ -1,184 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import styled, { createGlobalStyle } from 'styled-components';
+import { FaUserCircle, FaBox, FaCog, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { BASE_URL } from '../api';
-import { FaUserCircle, FaUsers, FaCog, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
-
-// Define colors
-const primaryColor = '#1976d2';
-const secondaryColor = '#607d8b';
-const backgroundColor = '#f5f5f5';
-const textColor = '#263238';
-
-// Global Styles
-const GlobalStyles = createGlobalStyle`
-  body {
-    background-color: ${backgroundColor};
-    color: ${textColor};
-    font-family: 'Roboto', sans-serif;
-  }
-`;
-
-// Styled components
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-top: 40px;
-`;
-
-const WelcomeMessage = styled.div`
-  text-align: center;
-  margin-bottom: 40px;
-  font-size: 24px;
-  font-weight: bold;
-  color: ${primaryColor};
-`;
-
-const ProfileHeader = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-  justify-content: center;
-`;
-
-const ProfilePicture = styled.img`
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-right: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  @media (max-width: 768px) {
-    margin-bottom: 20px;
-    margin-right: 0;
-  }
-`;
-
-const ProfileDetails = styled.div`
-  flex: 1;
-  text-align: center;
-  @media (max-width: 768px) {
-    text-align: center;
-  }
-`;
-
-const Name = styled.h2`
-  color: ${primaryColor};
-  margin-bottom: 10px;
-`;
-
-const Email = styled.p`
-  color: ${secondaryColor};
-  font-size: 16px;
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-`;
-
-const Tab = styled.button`
-  padding: 15px 30px;
-  background-color: ${(props) => (props.active ? primaryColor : '#f8f8f8')};
-  color: ${(props) => (props.active ? '#fff' : '#333')};
-  border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:not(:last-child) {
-    margin-right: 20px;
-  }
-
-  @media (max-width: 768px) {
-    margin-bottom: 10px;
-    &:not(:last-child) {
-      margin-right: 0;
-    }
-  }
-`;
-
-const TabContent = styled.div`
-  padding: 40px;
-  background-color: #f8f8f8;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-`;
-
-const EditForm = styled.form`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-gap: 20px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  font-weight: 600;
-  margin-bottom: 5px;
-`;
-
-const Input = styled.input`
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: ${primaryColor};
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #1565c0;
-  }
-
-  &:disabled {
-    background-color: #bdbdbd;
-    cursor: not-allowed;
-  }
-
-  &:not(:last-child) {
-    margin-right: 10px;
-  }
-`;
-
-const ProductsContainer = styled.div`
-  margin-top: 40px;
-`;
-
-const ProductCard = styled.div`
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-`;
-
-// Styled components (keeping the existing styled components)
-// ...
 
 const SellerProfile = () => {
   const [seller, setSeller] = useState(null);
@@ -205,7 +29,7 @@ const SellerProfile = () => {
         if (!userId || !token) {
           throw new Error('User ID or token not found');
         }
-
+    
         const [profileResponse, productsResponse] = await Promise.all([
           axios.get(`${BASE_URL}/api/sellers/${userId}/profile`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -214,10 +38,10 @@ const SellerProfile = () => {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
-
+    
         const profileData = profileResponse.data || {};
         const productsData = productsResponse.data || {};
-
+    
         setSeller(profileData);
         setProfileData({
           name: profileData.sellerFields?.name || '',
@@ -225,11 +49,11 @@ const SellerProfile = () => {
           businessName: profileData.sellerFields?.businessName || '',
           contactNumber: profileData.sellerFields?.contactNumber || '',
         });
-
-        const profilePictureUrl = profileData.profilePicture || '';
-        setImagePreview(profilePictureUrl);
+    
+        // Use the profilePicture URL directly from the backend
+        setImagePreview(profileData.profilePicture || '');
         setProducts(productsData.products || []);
-
+    
         setLoading(false);
       } catch (error) {
         setError(error.message || 'An unexpected error occurred');
@@ -240,251 +64,310 @@ const SellerProfile = () => {
     fetchUserData();
   }, []);
 
-  const handleEditMode = () => {
-    setEditMode(!editMode);
-    if (!editMode) {
+  const handleEditMode = useCallback(() => {
+    setEditMode((prev) => !prev);
+    if (!editMode && seller) {
       setProfileData({
-        name: seller?.sellerFields?.name || '',
-        email: seller?.email || '',
-        businessName: seller?.sellerFields?.businessName || '',
-        contactNumber: seller?.sellerFields?.contactNumber || '',
+        name: seller.sellerFields?.name || '',
+        email: seller.email || '',
+        businessName: seller.sellerFields?.businessName || '',
+        contactNumber: seller.sellerFields?.contactNumber || '',
       });
-      setImagePreview(seller?.profilePicture || '');
+      setImagePreview(seller.profilePicture || '');
     }
     setError(null);
     setSuccessMessage('');
-  };
-  const handleProfileUpdate = async (e) => {
+  }, [editMode, seller]);
+
+  const handleProfileUpdate = useCallback(async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccessMessage('');
-  
+
+    const formData = new FormData();
+    formData.append('name', profileData.name);
+    formData.append('email', profileData.email);
+    formData.append('businessName', profileData.businessName);
+    formData.append('contactNumber', profileData.contactNumber);
+    if (profileImage) {
+      formData.append('profilePicture', profileImage);
+    }
+
     try {
-      const formData = new FormData();
-  
-      // Append seller fields to formData
-      formData.append('name', profileData.name);
-      formData.append('email', profileData.email);
-      formData.append('businessName', profileData.businessName);
-      formData.append('contactNumber', profileData.contactNumber);
-      formData.append('companyName', profileData.companyName || '');
-      formData.append('contactPerson', profileData.contactPerson || '');
-      formData.append('businessAddress', profileData.businessAddress || '');
-  
-      console.log('Profile image state:', profileImage);
-      if (profileImage) {
-        console.log('Appending profile picture to FormData');
-        formData.append('profilePicture', profileImage);
-      } else {
-        console.log('No profile picture to append');
-      }
-  
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        console.log(key, typeof value === 'object' ? `File: ${value.name}` : value);
-      }
-  
       const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId');
-  
-      console.log('Sending request to:', `${BASE_URL}/api/sellers/${userId}/profile`);
-      const response = await axios.put(
-        `${BASE_URL}/api/sellers/${userId}/profile`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`,
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log('Upload progress:', percentCompleted);
-          },
-        }
-      );
-  
-      console.log('Server response:', response.data);
-  
-      const updatedProfile = response.data;
-  
-      setSeller(updatedProfile);
-      setProfileData({
-        name: updatedProfile.sellerFields?.name || '',
-        email: updatedProfile.email || '',
-        businessName: updatedProfile.sellerFields?.businessName || '',
-        contactNumber: updatedProfile.sellerFields?.contactNumber || '',
-      });
-      setImagePreview(updatedProfile.profilePicture);
-      setSuccessMessage('Profile updated successfully');
-      setEditMode(false);
-    } catch (error) {
+    const userId = localStorage.getItem('userId');
+
+    const response = await axios.put(
+      `${BASE_URL}/api/sellers/${userId}/profile`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const updatedProfile = response.data;
+    console.log('updatedProfile', updatedProfile);
+
+    setSeller(updatedProfile);
+    setProfileData({
+      name: updatedProfile.sellerFields?.name || '',
+      email: updatedProfile.email || '',
+      businessName: updatedProfile.sellerFields?.businessName || '',
+      contactNumber: updatedProfile.sellerFields?.contactNumber || '',
+    });
+    // Use the profilePicture URL directly from the updated profile
+    setImagePreview(updatedProfile.profilePicture || '');
+    setSuccessMessage('Profile updated successfully');
+    setEditMode(false);
+  } catch (error) {
       console.error("Error updating profile:", error);
-      console.error("Error response:", error.response?.data);
       setError(error.response?.data?.message || 'An error occurred while updating the profile');
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileData, profileImage]);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
     if (file) {
-      console.log('Image selected:', file);
       if (file.size > 5 * 1024 * 1024) {
         setError('File size must be less than 5MB');
         return;
       }
       setProfileImage(file);
       setImagePreview(URL.createObjectURL(file));
-    } else {
-      console.log('No image selected');
     }
-  };
+  }, []);
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = useCallback((tab) => {
     setActiveTab(tab);
-  };
+  }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-center py-20">Loading...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="text-center py-20 text-red-600">Error: {error}</div>;
   }
 
   return (
-    <Container>
-      <GlobalStyles />
-      <WelcomeMessage>
-        Greetings, esteemed seller {seller?.sellerFields?.name || 'Seller'}!
-      </WelcomeMessage>
-      <ProfileHeader>
-        <ProfilePicture 
-          src={imagePreview || 'https://via.placeholder.com/200x200'} 
-          alt="Profile" 
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = 'https://via.placeholder.com/200x200';
-          }}
-        />
-        <ProfileDetails>
-          {editMode ? (
-            <EditForm onSubmit={handleProfileUpdate}>
-              <FormGroup>
-                <Label>Profile Picture:</Label>
-                <Input 
-                  type="file" 
-                  name="profilePicture"
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Name:</Label>
-                <Input
-                  type="text"
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Email:</Label>
-                <Input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Business Name:</Label>
-                <Input
-                  type="text"
-                  value={profileData.businessName}
-                  onChange={(e) => setProfileData({ ...profileData, businessName: e.target.value })}
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Contact Number:</Label>
-                <Input
-                  type="text"
-                  value={profileData.contactNumber}
-                  onChange={(e) => setProfileData({ ...profileData, contactNumber: e.target.value })}
-                />
-              </FormGroup>
-              <Button type="submit" disabled={loading}>
-                <FaSave className="inline-block mr-2" /> Save
-              </Button>
-              <Button type="button" onClick={handleEditMode} disabled={loading}>
-                <FaTimes className="inline-block mr-2" /> Cancel
-              </Button>
-            </EditForm>
-          ) : (
-            <>
-              <Name>{seller?.sellerFields?.name || ''}</Name>
-              <Email>{seller?.email || ''}</Email>
-              <p>
-                <strong>Business Name:</strong> {seller?.sellerFields?.businessName || ''}
-              </p>
-              <p>
-                <strong>Contact Number:</strong> {seller?.sellerFields?.contactNumber || ''}
-              </p>
-            </>
-          )}
-        </ProfileDetails>
-      </ProfileHeader>
-      {loading && <div>Updating profile...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      {successMessage && <div style={{ color: 'green' }}>{successMessage}</div>}
-      <Tabs>
-        <Tab active={activeTab === 'profile'} onClick={() => handleTabChange('profile')}>
-          Profile
-        </Tab>
-        <Tab active={activeTab === 'products'} onClick={() => handleTabChange('products')}>
-          Products
-        </Tab>
-        <Tab active={activeTab === 'settings'} onClick={() => handleTabChange('settings')}>
-          Settings
-        </Tab>
-      </Tabs>
+    <div className="seller-profile w-full">
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-32">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Welcome, {seller?.sellerFields?.name}</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Manage your seller profile and products</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
 
-      <TabContent>
-        {activeTab === 'profile' && (
-          <>
-            <Button onClick={handleEditMode}>
-              <FaEdit className="inline-block mr-2" /> Edit Profile
-            </Button>
-          </>
-        )}
-        {activeTab === 'products' && (
-          <ProductsContainer>
-            <h3>Your Products</h3>
-            {products.length === 0 ? (
-              <p>No products found.</p>
-            ) : (
-              products.map((product) => (
-                <ProductCard key={product._id}>
-                  <h4>{product.name}</h4>
-                  <p>Price: {product.price}</p>
-                  <p>Category: {product.category}</p>
-                  <p>Description: {product.description}</p>
-                </ProductCard>
-              ))
-            )}
-          </ProductsContainer>
-        )}
-        {activeTab === 'settings' && (
-          <div>
-            <h3>Settings</h3>
-            <Button>Change Password</Button>
-            <Button>Notification Preferences</Button>
-            <Button>Privacy Settings</Button>
+      {/* Seller Profile Section */}
+      <section className="seller-profile-section py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Your Seller Profile</h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {loading && <div className="text-center text-gray-600">Updating profile...</div>}
+            {error && <div className="text-center text-red-600 mb-4">{error}</div>}
+            {successMessage && <div className="text-center text-green-600 mb-4">{successMessage}</div>}
+            <div className="flex flex-col md:flex-row items-center mb-8">
+              <div className="md:w-1/3 mb-4 md:mb-0">
+                <img
+                  src={imagePreview || 'https://via.placeholder.com/200x200'}
+                  alt="Profile"
+                  className="w-48 h-48 rounded-full object-cover mx-auto"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/200x200';
+                  }}
+                />
+              </div>
+              <div className="md:w-2/3 md:pl-8">
+                {editMode ? (
+                  <form onSubmit={handleProfileUpdate} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
+                      <input type="file" accept="image/*" onChange={handleImageChange} className="mt-1 block w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                        type="text"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Business Name</label>
+                      <input
+                        type="text"
+                        value={profileData.businessName}
+                        onChange={(e) => setProfileData({ ...profileData, businessName: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Contact Number</label>
+                      <input
+                        type="text"
+                        value={profileData.contactNumber}
+                        onChange={(e) => setProfileData({ ...profileData, contactNumber: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                      />
+                    </div>
+                    <div className="flex space-x-4">
+                      <button type="submit" className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300" disabled={loading}>
+                        <FaSave className="inline-block mr-2" /> Save
+                      </button>
+                      <button type="button" onClick={handleEditMode} className="bg-gray-300 text-gray-700 py-2 px-4 rounded-full hover:bg-gray-400 transition duration-300" disabled={loading}>
+                        <FaTimes className="inline-block mr-2" /> Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div>
+                    <h3 className="text-2xl font-semibold mb-2">{seller?.sellerFields?.name}</h3>
+                    <p className="text-gray-600 mb-1">{seller?.email}</p>
+                    <p className="text-gray-600 mb-1">Business: {seller?.sellerFields?.businessName}</p>
+                    <p className="text-gray-600 mb-4">Contact: {seller?.sellerFields?.contactNumber}</p>
+                    <button onClick={handleEditMode} className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                      <FaEdit className="inline-block mr-2" /> Edit Profile
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </TabContent>
-    </Container>
+        </div>
+      </section>
+
+      {/* Seller Features */}
+      <section className="seller-features py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">Seller Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard
+              icon={FaUserCircle}
+              title="Manage Profile"
+              description="Update your seller profile information and settings"
+              onClick={() => handleTabChange('profile')}
+            />
+            <FeatureCard
+              icon={FaBox}
+              title="Product Management"
+              description="View and manage your products on the platform"
+              onClick={() => handleTabChange('products')}
+            />
+            <FeatureCard
+              icon={FaCog}
+              title="Account Settings"
+              description="Configure your seller account settings"
+              onClick={() => handleTabChange('settings')}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Tab Content */}
+      <section className="tab-content py-20 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">
+            {activeTab === 'profile' && 'Your Profile'}
+            {activeTab === 'products' && 'Product Management'}
+            {activeTab === 'settings' && 'Account Settings'}
+          </h2>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            {activeTab === 'profile' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Profile Information</h3>
+                <p className="mb-2"><strong>Name:</strong> {seller?.sellerFields?.name}</p>
+                <p className="mb-2"><strong>Email:</strong> {seller?.email}</p>
+                <p className="mb-2"><strong>Business Name:</strong> {seller?.sellerFields?.businessName}</p>
+                <p className="mb-2"><strong>Contact Number:</strong> {seller?.sellerFields?.contactNumber}</p>
+              </div>
+            )}
+            {activeTab === 'products' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Your Products</h3>
+                {products.length === 0 ? (
+                  <p>No products found.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((product) => (
+                      <div key={product._id} className="bg-gray-50 rounded-lg p-4 shadow">
+                        <h4 className="text-lg font-semibold mb-2">{product.name}</h4>
+                        <p className="text-sm text-gray-600 mb-1">Price: ${product.price}</p>
+                        <p className="text-sm text-gray-600 mb-1">Category: {product.category}</p>
+                        <p className="text-sm text-gray-600">{product.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === 'settings' && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Account Settings</h3>
+                <div className="space-y-4">
+                  <button className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                    Change Password
+                  </button>
+                  <button className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                    Notification Preferences
+                  </button>
+                  <button className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                    Privacy Settings
+                  </button>
+                  <button className="bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 transition duration-300">
+                    Payment Methods
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="cta bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">Ready to Boost Your Sales?</h2>
+          <p className="text-xl mb-10">Use our tools to improve your seller experience and reach more customers!</p>
+          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <Link to="/dashboard" className="bg-white text-indigo-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-100 transition duration-300">
+              Go to Dashboard
+            </Link>
+            <Link to="/add-product" className="border-2 border-white text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-white hover:text-indigo-600 transition duration-300">
+              Add New Product
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
+
+const FeatureCard = ({ icon: Icon, title, description, onClick }) => (
+  <div className="bg-gray-50 rounded-lg p-6 shadow-lg text-center cursor-pointer hover:bg-gray-100 transition duration-300" onClick={onClick}>
+    <Icon className="text-5xl text-indigo-600 mb-4 mx-auto" />
+    <h3 className="text-2xl font-semibold mb-2">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
 
 export default SellerProfile;

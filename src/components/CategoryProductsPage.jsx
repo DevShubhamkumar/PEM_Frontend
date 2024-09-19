@@ -310,8 +310,14 @@ const CategoryProductsPage = () => {
               const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0) / comments.length || 0;
               const totalRatingsCount = comments.length;
 
+              // Ensure the image URL is complete
+              const images = product.images.map(image => 
+                image.startsWith('http') ? image : `${BASE_URL}/${image}`
+              );
+
               return {
                 ...product,
+                images,
                 totalRating,
                 totalRatingsCount,
               };
@@ -319,6 +325,7 @@ const CategoryProductsPage = () => {
           );
 
           setProducts(fetchedProducts);
+
 
           const allBrands = [...new Set(fetchedProducts.map(product => product.brand.name))];
           setBrands(allBrands);
@@ -549,20 +556,20 @@ const CategoryProductsPage = () => {
           {filteredProducts.length > 0 ? (
             <>
               <ProductList>
-                {currentProducts.map((product) => (
-                  <Link
-                    key={product._id}
-                    to={`/products/${product._id}`}
-                    state={{ product }}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <ProductCard>
-                      <ProductImageContainer>
-                        <ProductImage
-                          src={`${BASE_URL}/${product.images[0]}`}
-                          alt={product.name}
-                        />
-                      </ProductImageContainer>
+        {currentProducts.map((product) => (
+          <Link
+            key={product._id}
+            to={`/products/${product._id}`}
+            state={{ product }}
+            style={{ textDecoration: 'none' }}
+          >
+            <ProductCard>
+              <ProductImageContainer>
+                <ProductImage
+                  src={product.images[0]}
+                  alt={product.name}
+                />
+              </ProductImageContainer>
                       <ProductContent>
                         <ProductTitle>{product.name}</ProductTitle>
                         <ProductDetails>

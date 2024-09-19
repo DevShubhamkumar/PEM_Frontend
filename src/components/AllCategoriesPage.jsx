@@ -29,12 +29,14 @@ const AllCategoriesPage = () => {
     fetchCategories()
       .then(data => {
         if (isMounted) {
+          console.log('Fetched categories:', data); // Add this line for debugging
           setCategories(data);
           setIsLoading(false);
         }
       })
       .catch(err => {
         if (isMounted) {
+          console.error('Error fetching categories:', err); // Add this line for debugging
           setError(err.message);
           setIsLoading(false);
         }
@@ -185,35 +187,83 @@ const AllCategoriesPage = () => {
   );
 };
 
-const CategoryCard = React.memo(({ category }) => (
-  <motion.div
-    className="category-card bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 transform hover:-translate-y-2 hover:shadow-2xl"
-    initial={{ opacity: 0, scale: 0.9 }}
-    animate={{ opacity: 1, scale: 1 }}
-    exit={{ opacity: 0, scale: 0.9 }}
-    transition={{ duration: 0.3 }}
-  >
-    <img src={category.categoryImage || "https://via.placeholder.com/400x300"} alt={category.name} className="w-full h-48 object-cover" />
-    <div className="p-6">
-      <h3 className="text-xl font-semibold mb-3 text-gray-800">{category.name}</h3>
-      <Link to={`/categories/${category._id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">
-        Explore {category.name} &raquo;
-      </Link>
-    </div>
-  </motion.div>
-));
+const CategoryCard = React.memo(({ category }) => {
+  const [imageError, setImageError] = useState(false);
 
-const FeaturedCategoryCard = React.memo(({ category }) => (
-  <div className="featured-category-card bg-gray-100 rounded-lg shadow-md overflow-hidden transition duration-300 hover:shadow-xl">
-    <img src={category.categoryImage || "https://via.placeholder.com/400x300"} alt={category.name} className="w-full h-56 object-cover" />
-    <div className="p-6">
-      <h3 className="text-2xl font-semibold mb-3 text-gray-800">{category.name}</h3>
-      <p className="text-gray-600 mb-4">Discover the best products and services in {category.name}</p>
-      <Link to={`/categories/${category._id}`} className="bg-indigo-600 text-white py-2 px-4 rounded-full font-medium hover:bg-indigo-700 transition duration-300">
-        Explore Now
-      </Link>
+  const handleImageError = () => {
+    console.error('Failed to load image:', category.categoryImage);
+    setImageError(true);
+  };
+
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith('http')) return imageUrl;
+    return `${process.env.REACT_APP_BASE_URL}/uploads/${imageUrl}`;
+  };
+
+  const imageUrl = getImageUrl(category.categoryImage);
+
+  return (
+    <motion.div
+      className="category-card bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 transform hover:-translate-y-2 hover:shadow-2xl"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.3 }}
+    >
+      {!imageError && imageUrl ? (
+        <img 
+          src={imageUrl}
+          alt={category.name} 
+          className="w-full h-48 object-cover"
+          onError={handleImageError}
+        />
+      ) : (
+        <div className="w-full h-48 bg-gray-300 flex items-center justify-center">
+          <span className="text-gray-500">No image available</span>
+        </div>
+      )}
+      <div className="p-6">
+        <h3 className="text-xl font-semibold mb-3 text-gray-800">{category.name}</h3>
+        <Link to={`/categories/${category._id}`} className="text-indigo-600 hover:text-indigo-800 font-medium">
+          Explore {category.name} &raquo;
+        </Link>
+      </div>
+    </motion.div>
+  );
+});
+
+const FeaturedCategoryCard = React.memo(({ category }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = () => {
+    console.error('Failed to load image:', category.categoryImage);
+    setImageError(true);
+  };
+
+  return (
+    <div className="featured-category-card bg-gray-100 rounded-lg shadow-md overflow-hidden transition duration-300 hover:shadow-xl">
+      {!imageError && category.categoryImage ? (
+        <img 
+          src={category.categoryImage}
+          alt={category.name} 
+          className="w-full h-56 object-cover"
+          onError={handleImageError}
+        />
+      ) : (
+        <div className="w-full h-56 bg-gray-300 flex items-center justify-center">
+          <span className="text-gray-500">No image available</span>
+        </div>
+      )}
+      <div className="p-6">
+        <h3 className="text-2xl font-semibold mb-3 text-gray-800">{category.name}</h3>
+        <p className="text-gray-600 mb-4">Discover the best products and services in {category.name}</p>
+        <Link to={`/categories/${category._id}`} className="bg-indigo-600 text-white py-2 px-4 rounded-full font-medium hover:bg-indigo-700 transition duration-300">
+          Explore Now
+        </Link>
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 export default AllCategoriesPage;

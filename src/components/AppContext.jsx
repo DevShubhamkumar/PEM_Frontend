@@ -161,6 +161,7 @@ export function AppProvider({ children }) {
     dispatch({ type: 'SET_CATEGORIES_PAGE', payload: page });
   }, []);
 
+
   const fetchCategories = useCallback(async () => {
     if (categoriesCache.current) {
       return categoriesCache.current;
@@ -314,6 +315,7 @@ export function AppProvider({ children }) {
       throw error;
     }
   }, []);
+  
 
   const fetchAdminReports = useCallback(async () => {
     if (reportsCache.current) {

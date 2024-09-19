@@ -5,7 +5,7 @@ import { toast, Toaster } from 'react-hot-toast';
 import { FaShoppingCart, FaCartPlus, FaThumbsUp, FaThumbsDown, FaFacebook, FaTwitter, FaTruck, FaExchangeAlt, FaShieldAlt, FaHeart, FaRegHeart, FaCheck, FaInfoCircle } from 'react-icons/fa';
 import styled from 'styled-components';
 import Footer from './Footer';
-
+import { BASE_URL } from '../api'; 
 
 
 // Styled components (keeping the existing ones and adding/modifying as needed)
@@ -332,26 +332,34 @@ const ProductDetailsPage = () => {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
         
-        const serverUrl = 'http://localhost:5002';
-        const productResponse = await axios.get(`${serverUrl}/api/products/${id}`, {
+        const productResponse = await axios.get(`${BASE_URL}/api/products/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setProduct(productResponse.data.product);
-        const commentsResponse = await axios.get(`${serverUrl}/api/products/${id}/comments`, {
+        // Process the product images
+        const processedProduct = {
+          ...productResponse.data.product,
+          images: productResponse.data.product.images.map(image => 
+            image.startsWith('http') ? image : `${BASE_URL}/${image}`
+          )
+        };
+
+        setProduct(processedProduct);
+
+        const commentsResponse = await axios.get(`${BASE_URL}/api/products/${id}/comments`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setComments(commentsResponse.data);
 
         if (token && userId) {
           setIsLoggedIn(true);
-          const orderResponse = await axios.get(`${serverUrl}/api/orders/user/${userId}/product/${id}`, {
+          const orderResponse = await axios.get(`${BASE_URL}/api/orders/user/${userId}/product/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setCanReview(orderResponse.data.canReview);
           setIsDelivered(orderResponse.data.isDelivered);
 
-          const wishlistResponse = await axios.get(`${serverUrl}/api/wishlist`, {
+          const wishlistResponse = await axios.get(`${BASE_URL}/api/wishlist`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setIsInWishlist(wishlistResponse.data.some(item => item.productId === id));
@@ -381,7 +389,7 @@ const ProductDetailsPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:5002/api/cart',
+        `${BASE_URL}/api/cart`,
         {
           productId: product._id,
           quantity: quantity,
@@ -402,6 +410,7 @@ const ProductDetailsPage = () => {
       toast.error('An error occurred while adding the product to cart.');
     }
   };
+
 
   const handleBuyNow = () => {
     handleAddToCart();
@@ -545,7 +554,7 @@ const ProductDetailsPage = () => {
                 {product.images.map((imagePath, index) => (
                   <Thumbnail
                     key={index}
-                    src={`${serverUrl}/${imagePath}`}
+                    src={imagePath}
                     alt={product.name}
                     onClick={() => handleImageClick(index)}
                     active={index === mainImageIndex}
@@ -554,7 +563,7 @@ const ProductDetailsPage = () => {
               </ThumbnailsContainer>
               <MainImageContainer>
                 <MainProductImage
-                  src={`${serverUrl}/${product.images[mainImageIndex]}`}
+                  src={product.images[mainImageIndex]}
                   alt={product.name}
                 />
               </MainImageContainer>
