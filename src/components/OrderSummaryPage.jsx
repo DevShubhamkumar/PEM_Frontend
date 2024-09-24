@@ -1,168 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { FaShoppingCart, FaTruck, FaCreditCard, FaMoneyBillWave, FaSpinner, FaChevronDown } from 'react-icons/fa';
 import Footer from './Footer';
 import { BASE_URL } from '../api';
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-family: 'Arial', sans-serif;
-
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
-`;
-
-const Title = styled.h2`
-  font-size: 2rem;
-  color: #333;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 0.5rem;
-`;
-
-const Section = styled.section`
-  margin-bottom: 2rem;
-`;
-
-const CartItemContainer = styled.div`
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const CartItemDetails = styled.div`
-  display: flex;
-  align-items: center;
-
-  @media (max-width: 576px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const CartItemImage = styled.img`
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-right: 1rem;
-
-  @media (max-width: 576px) {
-    margin-bottom: 1rem;
-  }
-`;
-
-const CartItemInfo = styled.div`
-  flex: 1;
-`;
-
-const CartItemName = styled.h3`
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
-  color: #333;
-`;
-
-const CartItemPrice = styled.p`
-  font-weight: bold;
-  color: #4a4a4a;
-  margin-bottom: 0.5rem;
-`;
-
-const CartItemQuantity = styled.p`
-  color: #666;
-`;
-
-const TotalPrice = styled.p`
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #4caf50;
-  text-align: right;
-  margin-top: 1rem;
-`;
-
-const AddressContainer = styled.div`
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1rem;
-`;
-
-const AddressDetails = styled.div`
-  line-height: 1.6;
-`;
-
-const OrderSummaryContainer = styled.div`
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.5rem;
-`;
-
-const SummaryItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-size: 1.1rem;
-`;
-
-const Total = styled(SummaryItem)`
-  font-weight: bold;
-  font-size: 1.3rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 2px solid #e0e0e0;
-`;
-
-const PaymentMethodContainer = styled.div`
-  margin-top: 1.5rem;
-`;
-
-const PaymentMethodLabel = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-`;
-
-const PaymentMethodInput = styled.input`
-  margin-right: 0.5rem;
-`;
-
-const PaymentButton = styled.button`
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 1rem;
-  margin-top: 1.5rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #45a049;
-  }
-
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-`;
 
 const OrderSummaryPage = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -171,95 +13,91 @@ const OrderSummaryPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [userId, setUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const token = localStorage.getItem('token');
         const serverUrl = `${BASE_URL}`;
 
-        // Fetch cart data
+        // Fetch cart items
         const cartResponse = await axios.get(`${serverUrl}/api/cart`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         const cartItems = cartResponse.data;
         const validCartItems = cartItems.filter((item) => item.productId !== null && item.productId !== undefined);
 
-        const cartItemsWithFullUrls = validCartItems.map((item) => {
-          let images = [];
-          if (item.productId && item.productId.images) {
-            images = item.productId.images.map((imagePath) => 
+        const cartItemsWithFullUrls = validCartItems.map((item) => ({
+          ...item,
+          productId: {
+            ...item.productId,
+            images: item.productId?.images?.map((imagePath) => 
               imagePath.startsWith('http') ? imagePath : `${serverUrl}/${imagePath}`
-            );
-          }
-          return {
-            ...item,
-            productId: {
-              ...item.productId,
-              images,
-              price: item.productId.price || 0,
-            },
-            sellerId: {
-              ...item.sellerId,
-            },
-          };
-        });
-
-        const totalPrice = cartItemsWithFullUrls.reduce(
-          (total, item) =>
-            total +
-            (item.productId
-              ? item.productId.price * item.quantity -
-                (item.productId.price * item.quantity * item.productId.discount) / 100
-              : 0),
-          0
-        );
+            ) || [],
+          },
+        }));
 
         setCartItems(cartItemsWithFullUrls);
-        setTotalPrice(totalPrice);
+        setUserId(cartResponse.data[0]?.userId || localStorage.getItem('userId'));
 
-        const userId = cartResponse.data.userId || localStorage.getItem('userId');
-        setUserId(userId);
-
-        // Get selected address from local storage
+        // Fetch user address
         const storedAddress = localStorage.getItem('selectedAddress');
         if (storedAddress) {
           setSelectedAddress(JSON.parse(storedAddress));
         } else {
-          // If no address is selected, fetch the user's addresses
           const userResponse = await axios.get(`${serverUrl}/api/users/${userId}/profile`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
-
           const userAddresses = userResponse.data.addresses;
-          if (userAddresses && userAddresses.length > 0) {
+          if (userAddresses?.length > 0) {
             setSelectedAddress(userAddresses[0]);
+            localStorage.setItem('selectedAddress', JSON.stringify(userAddresses[0]));
           }
         }
 
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('An error occurred while fetching the data.');
+        setError('An error occurred while fetching the data. Please try again.');
         setIsLoading(false);
+        toast.error('Failed to load order summary. Please refresh the page.');
       }
     };
 
     fetchData();
-  }, []);
+  }, [userId]);
+
+  const totalPriceCalculation = useMemo(() => {
+    return cartItems.reduce(
+      (total, item) => total + (item.productId?.price || 0) * item.quantity * (1 - (item.productId?.discount || 0) / 100),
+      0
+    );
+  }, [cartItems]);
+
+  useEffect(() => {
+    setTotalPrice(totalPriceCalculation);
+  }, [totalPriceCalculation]);
 
   const handlePaymentMethodChange = (e) => {
     setPaymentMethod(e.target.value);
   };
 
   const handleCreateOrder = async () => {
+    if (!selectedAddress) {
+      toast.error('Please select a delivery address.');
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast.error('Please select a payment method.');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const serverUrl = `${BASE_URL}`;
@@ -267,30 +105,13 @@ const OrderSummaryPage = () => {
       if (paymentMethod === 'cod') {
         const response = await axios.post(
           `${serverUrl}/api/create-order`,
-          {
-            paymentMethod: 'cod',
-            userId,
-            totalPrice,
-            cartItems,
-            address: selectedAddress,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { paymentMethod: 'cod', userId, totalPrice, cartItems, address: selectedAddress },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-  
-        const { orderId } = response.data;
-        navigate(`/order-confirmation/${orderId}`);
+        navigate(`/order-confirmation/${response.data.orderId}`);
       } else if (paymentMethod === 'card') {
         navigate('/payment-gateway', { 
-          state: { 
-            userId, 
-            totalPrice, 
-            cartItems,
-            address: selectedAddress,
-          } 
+          state: { userId, totalPrice, cartItems, address: selectedAddress } 
         });
       }
     } catch (error) {
@@ -302,90 +123,192 @@ const OrderSummaryPage = () => {
   const deliveryFee = totalPrice > 800 ? 0 : 40;
   const finalTotal = totalPrice + deliveryFee;
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <FaSpinner className="animate-spin text-purple-600 text-4xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition duration-300"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Container>
-      {isLoading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <Title>Order Summary</Title>
-          <Section>
-            <Title>Cart Items</Title>
-            {cartItems.map((item) => (
-              <CartItemContainer key={item._id}>
-                <CartItemDetails>
-                  <CartItemImage src={item.productId.images[0]} alt={item.productId.name} />
-                  <CartItemInfo>
-                    <CartItemName>{item.productId.name}</CartItemName>
-                    <CartItemPrice>₹{item.productId.price.toFixed(2)}</CartItemPrice>
-                    <CartItemQuantity>Quantity: {item.quantity}</CartItemQuantity>
-                  </CartItemInfo>
-                </CartItemDetails>
-              </CartItemContainer>
-            ))}
-            <TotalPrice>Total Price: ₹{totalPrice.toFixed(2)}</TotalPrice>
-          </Section>
-          <Section>
-            <Title>Delivery Address</Title>
-            {selectedAddress ? (
-              <AddressContainer>
-                <AddressDetails>
-                  <p>{selectedAddress.fullName}</p>
+    <div className="bg-gray-100 min-h-screen">
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 animate-fade-in-down">Order Summary</h1>
+          <p className="text-xl mb-8 animate-fade-in-up">Review your order details and complete your purchase</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <FaShoppingCart className="mr-2 text-purple-600" />
+              Cart Items
+            </h2>
+            {cartItems.length === 0 ? (
+              <p className="text-gray-500">Your cart is empty.</p>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {cartItems.map((item) => (
+                  <div key={item._id} className="flex items-center border-b pb-4">
+                    <img src={item.productId.images[0]} alt={item.productId.name} className="w-20 h-20 object-cover rounded-md mr-4" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.productId.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {item.productId.brand?.name} | {item.productId.category?.name}
+                      </p>
+                      <p className="text-gray-600">Quantity: {item.quantity}</p>
+                      <p className="text-purple-600 font-semibold">
+                        ₹{((item.productId.price * (1 - item.productId.discount / 100)) * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <FaTruck className="mr-2 text-purple-600" />
+                Delivery Address
+              </h2>
+              {selectedAddress ? (
+                <div>
+                  <p className="font-semibold">{selectedAddress.fullName}</p>
                   <p>{selectedAddress.address}</p>
-                  <p>
-                    {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pinCode}
-                  </p>
+                  <p>{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pinCode}</p>
                   <p>Phone: {selectedAddress.phoneNumber}</p>
                   {selectedAddress.landmark && <p>Landmark: {selectedAddress.landmark}</p>}
-                </AddressDetails>
-              </AddressContainer>
-            ) : (
-              <p>No address selected. Please select an address from your profile.</p>
-            )}
-          </Section>
-          <OrderSummaryContainer>
-            <Title>Order Summary</Title>
-            <SummaryItem>
-              <span>Subtotal</span>
-              <span>₹{totalPrice.toFixed(2)}</span>
-            </SummaryItem>
-            <SummaryItem>
-              <span>Delivery Charges</span>
-              <span>₹{deliveryFee.toFixed(2)}</span>
-            </SummaryItem>
-            <Total>
-              <span>Total</span>
-              <span>₹{finalTotal.toFixed(2)}</span>
-            </Total>
-            <PaymentMethodContainer>
-              <PaymentMethodLabel>
-                <PaymentMethodInput
-                  type="radio"
-                  value="cod"
-                  checked={paymentMethod === 'cod'}
-                  onChange={handlePaymentMethodChange}
-                />
-                Cash on Delivery
-              </PaymentMethodLabel>
-              <PaymentMethodLabel>
-                <PaymentMethodInput
-                  type="radio"
-                  value="card"
-                  checked={paymentMethod === 'card'}
-                  onChange={handlePaymentMethodChange}
-                />
-                Online Payment
-              </PaymentMethodLabel>
-            </PaymentMethodContainer>
-            <PaymentButton onClick={handleCreateOrder} disabled={!paymentMethod}>
-              Proceed to Payment
-            </PaymentButton>
-          </OrderSummaryContainer>
-          <Footer />
-        </>
-      )}
-    </Container>
+                </div>
+              ) : (
+                <p className="text-red-500">No address selected. Please add an address in your profile.</p>
+              )}
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <FaCreditCard className="mr-2 text-purple-600" />
+                Payment Method
+              </h2>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="cod"
+                    checked={paymentMethod === 'cod'}
+                    onChange={handlePaymentMethodChange}
+                    className="form-radio text-purple-600"
+                  />
+                  <span>Cash on Delivery</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="card"
+                    checked={paymentMethod === 'card'}
+                    onChange={handlePaymentMethodChange}
+                    className="form-radio text-purple-600"
+                  />
+                  <span>Online Payment</span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4 flex items-center">
+                <FaMoneyBillWave className="mr-2 text-purple-600" />
+                Order Summary
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery Fee</span>
+                  <span>₹{deliveryFee.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                  <span>Total</span>
+                  <span>₹{finalTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleCreateOrder}
+              disabled={!paymentMethod || cartItems.length === 0}
+              className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              Place Order
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Why Choose Us Section */}
+      <section className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-12 text-center text-gray-800">Why Choose Our E-Marketplace?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <FeatureCard
+              icon={FaShoppingCart}
+              title="Wide Selection"
+              description="Browse through a vast array of products from trusted sellers."
+            />
+            <FeatureCard
+              icon={FaTruck}
+              title="Fast Delivery"
+              description="Get your orders delivered quickly and efficiently."
+            />
+            <FeatureCard
+              icon={FaCreditCard}
+              title="Secure Payments"
+              description="Shop with confidence using our secure payment options."
+            />
+            <FeatureCard
+              icon={FaMoneyBillWave}
+              title="Great Deals"
+              description="Enjoy competitive prices and exciting offers on various products."
+            />
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 };
+
+const FeatureCard = ({ icon: Icon, title, description }) => (
+  <div className="bg-white rounded-lg shadow-md p-6 text-center">
+    <Icon className="text-4xl text-purple-600 mb-4 mx-auto" />
+    <h3 className="text-xl font-semibold mb-2">{title}</h3>
+    <p className="text-gray-600">{description}</p>
+  </div>
+);
 
 export default OrderSummaryPage;

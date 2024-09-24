@@ -1,312 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast, Toaster } from 'react-hot-toast';
-import { FaShoppingCart, FaCartPlus, FaThumbsUp, FaThumbsDown, FaFacebook, FaTwitter, FaTruck, FaExchangeAlt, FaShieldAlt, FaHeart, FaRegHeart, FaCheck, FaInfoCircle } from 'react-icons/fa';
-import styled from 'styled-components';
+import { FaShoppingCart, FaCartPlus, FaThumbsUp, FaThumbsDown, FaFacebook, FaTwitter, FaTruck, FaExchangeAlt, FaShieldAlt, FaCheck, FaInfoCircle, FaStar, FaBox, FaCreditCard, FaGift } from 'react-icons/fa';
+import axios from 'axios';
 import Footer from './Footer';
-import { BASE_URL } from '../api'; 
-
-
-// Styled components (keeping the existing ones and adding/modifying as needed)
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-`;
-
-const ProductGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const LeftSection = styled.div``;
-
-const RightSection = styled.div``;
-
-const ImageContainer = styled.div`
-  display: flex;
-  margin-bottom: 20px;
-`;
-
-const ThumbnailsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  margin-right: 10px;
-`;
-
-const Thumbnail = styled.img`
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  margin-bottom: 10px;
-  cursor: pointer;
-  border: 2px solid ${props => props.active ? '#007bff' : 'transparent'};
-`;
-
-const MainImageContainer = styled.div`
-  flex: 1;
-`;
-
-const MainProductImage = styled.img`
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-`;
-
-const Title = styled.h1`
-  font-size: 24px;
-  margin-bottom: 10px;
-`;
-
-const Description = styled.p`
-  margin-bottom: 20px;
-`;
-
-const PriceContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const OriginalPrice = styled.span`
-  font-size: 18px;
-  text-decoration: line-through;
-  color: #888;
-  margin-right: 10px;
-`;
-
-const DiscountedPrice = styled.span`
-  font-size: 24px;
-  font-weight: bold;
-  color: #007bff;
-  margin-right: 10px;
-`;
-
-const Discount = styled.span`
-  font-size: 16px;
-  color: #28a745;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  margin-bottom: 20px;
-`;
-
-const AddToCartButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-right: 10px;
-  
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const BuyNowButton = styled(AddToCartButton)`
-  background-color: #28a745;
-  
-  &:hover {
-    background-color: #218838;
-  }
-`;
-
-const RatingContainer = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const TotalRating = styled.span`
-  font-size: 24px;
-  font-weight: bold;
-  margin-right: 10px;
-`;
-
-const ReviewCount = styled.span`
-  color: #888;
-`;
-
-const StarRating = styled.div`
-  display: flex;
-  margin-left: 10px;
-`;
-
-const StarIcon = styled.span`
-  color: ${props => props.active ? '#ffc107' : '#e4e5e9'};
-  font-size: 20px;
-`;
-
-const CommentSection = styled.div`
-  margin-top: 30px;
-`;
-
-const CommentList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-`;
-
-const CommentItem = styled.li`
-  border-bottom: 1px solid #eee;
-  padding: 10px 0;
-`;
-
-const LikeButton = styled.button`
-  background: none;
-  border: none;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  color: ${props => props.active ? '#007bff' : '#6c757d'};
-  font-weight: ${props => props.active ? 'bold' : 'normal'};
-  margin-right: 10px;
-  opacity: ${props => props.disabled ? 0.5 : 1};
-`;
-
-const DislikeButton = styled(LikeButton)`
-  color: ${props => props.active ? '#dc3545' : '#6c757d'};
-`;
-
-const CommentForm = styled.form`
-  margin-top: 20px;
-  
-  textarea {
-    width: 100%;
-    height: 100px;
-    margin-bottom: 10px;
-    padding: 10px;
-  }
-  
-  button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    cursor: pointer;
-    
-    &:hover {
-      background-color: #0056b3;
-    }
-  }
-`;
-
-const QuantitySelector = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const QuantityButton = styled.button`
-  padding: 5px 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  cursor: pointer;
-`;
-
-const QuantityInput = styled.input`
-  width: 50px;
-  text-align: center;
-  margin: 0 10px;
-`;
-
-const ProductHighlights = styled.ul`
-  margin-bottom: 20px;
-`;
-
-const SocialShare = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 20px;
-`;
-
-const ShareButton = styled.button`
-  margin-left: 10px;
-  padding: 5px 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  
-  &:hover {
-    background-color: #e0e0e0;
-  }
-`;
-
-const ProductInfo = styled.div`
-  margin-bottom: 20px;
-`;
-
-const ProductInfoItem = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-const ProductInfoIcon = styled.span`
-  margin-right: 10px;
-  color: #007bff;
-`;
-const NoReviews = styled.p`
-  font-style: italic;
-  color: #666;
-  text-align: center;
-  padding: 20px 0;
-`;
-
-// New styled components
-const FeatureList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-  margin-bottom: 20px;
-`;
-
-const FeatureItem = styled.li`
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-`;
-
-const FeatureIcon = styled.span`
-  margin-right: 10px;
-  color: #28a745;
-`;
-
-const SpecificationsTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-`;
-
-const TableRow = styled.tr`
-  &:nth-child(even) {
-    background-color: #f8f9fa;
-  }
-`;
-
-const TableCell = styled.td`
-  padding: 10px;
-  border: 1px solid #dee2e6;
-`;
-
-const WishlistButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: ${props => props.active ? '#dc3545' : '#6c757d'};
-  font-size: 24px;
-  margin-left: 10px;
-`;
+import { BASE_URL } from '../api';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
@@ -322,7 +20,7 @@ const ProductDetailsPage = () => {
   const [canReview, setCanReview] = useState(false);
   const [isDelivered, setIsDelivered] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -332,11 +30,12 @@ const ProductDetailsPage = () => {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId');
         
-        const productResponse = await axios.get(`${BASE_URL}/api/products/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const [productResponse, commentsResponse, relatedProductsResponse] = await Promise.all([
+          axios.get(`${BASE_URL}/api/products/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${BASE_URL}/api/products/${id}/comments`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${BASE_URL}/api/products/${id}/related`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
 
-        // Process the product images
         const processedProduct = {
           ...productResponse.data.product,
           images: productResponse.data.product.images.map(image => 
@@ -345,28 +44,18 @@ const ProductDetailsPage = () => {
         };
 
         setProduct(processedProduct);
-
-        const commentsResponse = await axios.get(`${BASE_URL}/api/products/${id}/comments`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         setComments(commentsResponse.data);
+        setRelatedProducts(relatedProductsResponse.data);
 
         if (token && userId) {
           setIsLoggedIn(true);
-          const orderResponse = await axios.get(`${BASE_URL}/api/orders/user/${userId}/product/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const orderResponse = await axios.get(`${BASE_URL}/api/orders/user/${userId}/product/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+          
           setCanReview(orderResponse.data.canReview);
           setIsDelivered(orderResponse.data.isDelivered);
-
-          const wishlistResponse = await axios.get(`${BASE_URL}/api/wishlist`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setIsInWishlist(wishlistResponse.data.some(item => item.productId === id));
         } else {
           setIsLoggedIn(false);
         }
-
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('An error occurred while fetching the data.');
@@ -377,40 +66,36 @@ const ProductDetailsPage = () => {
     fetchData();
   }, [id]);
 
-  const handleImageClick = (index) => {
-    setMainImageIndex(index);
-  };
+  const handleImageClick = (index) => setMainImageIndex(index);
 
   const handleQuantityChange = (change) => {
     setQuantity(prevQuantity => Math.max(1, prevQuantity + change));
   };
 
   const handleAddToCart = async () => {
+    if (!isLoggedIn) {
+      toast.error('Please log in to add items to your cart.');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `${BASE_URL}/api/cart`,
-        {
-          productId: product._id,
-          quantity: quantity,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { productId: product._id, quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
       if (response.status === 201 || response.status === 200) {
         toast.success('Product added to cart successfully!');
       } else {
-        toast.error('Failed to add product to cart.');
+        toast.error('Failed to add product to cart. Please try again.');
       }
     } catch (error) {
       console.error('Error adding product to cart:', error);
       toast.error('An error occurred while adding the product to cart.');
     }
   };
-
 
   const handleBuyNow = () => {
     handleAddToCart();
@@ -419,8 +104,7 @@ const ProductDetailsPage = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!isLoggedIn) {
       toast.error('Please log in to leave a comment.');
       return;
     }
@@ -429,13 +113,10 @@ const ProductDetailsPage = () => {
       return;
     }
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:5002/api/comments',
-        { 
-          productId: product._id, 
-          text: newComment, 
-          rating 
-        },
+        `${BASE_URL}/api/comments`,
+        { productId: product._id, text: newComment, rating },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Comment submitted successfully');
@@ -448,31 +129,22 @@ const ProductDetailsPage = () => {
     }
   };
 
-  const handleRatingClick = (ratingValue) => {
-    setRating(ratingValue);
-  };
+  const handleRatingClick = (ratingValue) => setRating(ratingValue);
 
   const handleCommentReaction = async (commentId, action) => {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
+    if (!isLoggedIn) {
       toast.error('Please log in to react to comments.');
       return;
     }
   
     try {
+      const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:5002/api/comments/${commentId}/react`,
+        `${BASE_URL}/api/comments/${commentId}/react`,
         { action },
-        { 
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          } 
-        }
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
   
-      // Update the comment's like and dislike counts
       setComments(prevComments => prevComments.map(comment => 
         comment._id === commentId 
           ? { ...comment, likeCount: response.data.likeCount, dislikeCount: response.data.dislikeCount }
@@ -487,254 +159,327 @@ const ProductDetailsPage = () => {
   };
 
   const handleShare = (platform) => {
-    let url;
-    switch (platform) {
-      case 'Facebook':
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`;
-        break;
-      case 'Twitter':
-        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(product.name)}`;
-        break;
-      default:
-        return;
-    }
+    const url = platform === 'Facebook'
+      ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`
+      : `https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(product.name)}`;
     window.open(url, '_blank');
   };
 
- // New function to handle wishlist toggling
- const handleWishlistToggle = async () => {
-  if (!isLoggedIn) {
-    toast.error('Please log in to add to wishlist.');
-    return;
-  }
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(
-      'http://localhost:5002/api/wishlist/toggle',
-      { productId: product._id },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setIsInWishlist(response.data.isInWishlist);
-    toast.success(response.data.message);
-  } catch (error) {
-    console.error('Error toggling wishlist:', error);
-    toast.error('Failed to update wishlist. Please try again later.');
-  }
-};
+  const formatRating = (rating) => Number(rating.toFixed(1));
 
-
-  const formatRating = (rating) => {
-    return Number(rating.toFixed(1));
-  };
-  if (isLoading) {
-    return <Container>Loading...</Container>;
-  }
-
-  if (!product) {
-    return <Container>No product found.</Container>;
-  }
+  if (isLoading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (!product) return <div className="flex justify-center items-center h-screen">No product found.</div>;
 
   const averageRating = formatRating(
     comments.reduce((total, comment) => total + comment.rating, 0) / comments.length || 0
   );
 
-  const serverUrl = 'http://localhost:5002';
   return (
-    <>
-      <Container>
-        <Toaster />
-        <SocialShare>
-          <ShareButton onClick={() => handleShare('Facebook')}><FaFacebook /> Share</ShareButton>
-          <ShareButton onClick={() => handleShare('Twitter')}><FaTwitter /> Tweet</ShareButton>
-        </SocialShare>
-        <ProductGrid>
-          <LeftSection>
-            <ImageContainer>
-              <ThumbnailsContainer>
-                {product.images.map((imagePath, index) => (
-                  <Thumbnail
-                    key={index}
-                    src={imagePath}
-                    alt={product.name}
-                    onClick={() => handleImageClick(index)}
-                    active={index === mainImageIndex}
-                  />
-                ))}
-              </ThumbnailsContainer>
-              <MainImageContainer>
-                <MainProductImage
-                  src={product.images[mainImageIndex]}
-                  alt={product.name}
-                />
-              </MainImageContainer>
-            </ImageContainer>
-          </LeftSection>
-          <RightSection>
-            <Title>{product.name}</Title>
-            <RatingContainer>
-              <TotalRating>{averageRating}</TotalRating>
-              <ReviewCount>({comments.length} reviews)</ReviewCount>
-              <StarRating>
-                {[...Array(5)].map((_, i) => (
-                  <StarIcon key={i} active={i < Math.round(averageRating)}>★</StarIcon>
-                ))}
-              </StarRating>
-            </RatingContainer>
-            <PriceContainer>
-              <OriginalPrice>₹{product.price}</OriginalPrice>
-              <DiscountedPrice>₹{(product.price * (1 - product.discount /100)).toFixed(2)}</DiscountedPrice>
-              <Discount>{product.discount}% off</Discount>
-            </PriceContainer>
-            <Description>{product.description}</Description>
-            <ProductInfo>
-              <ProductInfoItem>
-                <ProductInfoIcon><FaTruck /></ProductInfoIcon>
-                Free delivery on orders over ₹500
-              </ProductInfoItem>
-              <ProductInfoItem>
-                <ProductInfoIcon><FaExchangeAlt /></ProductInfoIcon>
-                Easy 30-day return policy
-              </ProductInfoItem>
-              <ProductInfoItem>
-                <ProductInfoIcon><FaShieldAlt /></ProductInfoIcon>
-                2-year warranty included
-              </ProductInfoItem>
-            </ProductInfo>
-            <FeatureList>
-              <FeatureItem><FeatureIcon><FaCheck /></FeatureIcon> High-quality craftsmanship for lasting durability</FeatureItem>
-              <FeatureItem><FeatureIcon><FaCheck /></FeatureIcon> Designed with user convenience and functionality in mind</FeatureItem>
-              <FeatureItem><FeatureIcon><FaCheck /></FeatureIcon> Backed by exceptional customer support and a satisfaction guarantee</FeatureItem>
-              <FeatureItem><FeatureIcon><FaCheck /></FeatureIcon> Eco-friendly materials and sustainable production processes</FeatureItem>
-              <FeatureItem><FeatureIcon><FaCheck /></FeatureIcon> Compatible with a wide range of accessories and complementary products</FeatureItem>
-            </FeatureList>
-            <QuantitySelector>
-              <QuantityButton onClick={() => handleQuantityChange(-1)}>-</QuantityButton>
-              <QuantityInput type="number" value={quantity} readOnly />
-              <QuantityButton onClick={() => handleQuantityChange(1)}>+</QuantityButton>
-            </QuantitySelector>
-            <ButtonContainer>
-              <AddToCartButton onClick={handleAddToCart}>
-                <FaShoppingCart />
-                Add to Cart
-              </AddToCartButton>
-              <BuyNowButton onClick={handleBuyNow}>
-                <FaCartPlus />
-                Buy Now
-              </BuyNowButton>
-              <WishlistButton onClick={handleWishlistToggle} active={isInWishlist}>
-                {isInWishlist ? <FaHeart /> : <FaRegHeart />}
-              </WishlistButton>
-            </ButtonContainer>
-          </RightSection>
-        </ProductGrid>
-        
-        <h3>Product Specifications</h3>
-        <SpecificationsTable>
-          <tbody>
-            <TableRow>
-              <TableCell>Brand</TableCell>
-              <TableCell>{product.brand || 'N/A'}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Model</TableCell>
-              <TableCell>{product.model || 'N/A'}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Color</TableCell>
-              <TableCell>{product.color || 'N/A'}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Material</TableCell>
-              <TableCell>{product.material || 'N/A'}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Dimensions</TableCell>
-              <TableCell>{product.dimensions || 'N/A'}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Weight</TableCell>
-              <TableCell>{product.weight || 'N/A'}</TableCell>
-            </TableRow>
-          </tbody>
-        </SpecificationsTable>
+    <div className="bg-gray-50 min-h-screen">
+      <Toaster />
 
-        <ProductInfo>
-          <h3>Additional Information</h3>
-          <ProductInfoItem>
-            <ProductInfoIcon><FaInfoCircle /></ProductInfoIcon>
-            Made in India
-          </ProductInfoItem>
-          <ProductInfoItem>
-            <ProductInfoIcon><FaInfoCircle /></ProductInfoIcon>
-            Energy-efficient design
-          </ProductInfoItem>
-          <ProductInfoItem>
-            <ProductInfoIcon><FaInfoCircle /></ProductInfoIcon>
-            Complies with international safety standards
-          </ProductInfoItem>
-        </ProductInfo>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24 sm:py-32">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 animate-fade-in-down">
+            {product.name}
+          </h1>
+          <p className="text-xl sm:text-2xl md:text-3xl mb-8 animate-fade-in-up max-w-3xl">
+            Discover the perfect blend of style, functionality, and innovation.
+          </p>
+          <div className="flex items-center space-x-4">
+            <span className="text-3xl font-bold">₹{(product.price * (1 - product.discount /100)).toFixed(2)}</span>
+            <span className="text-xl text-gray-300 line-through">₹{product.price}</span>
+            <span className="bg-green-500 text-white text-sm font-semibold px-3 py-1 rounded-full">{product.discount}% OFF</span>
+          </div>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
 
-        <CommentSection>
-          <h3>Customer Reviews</h3>
-          {comments.length > 0 ? (
-            <CommentList>
-              {comments.map((comment) => (
-                <CommentItem key={comment._id}>
-                  <h4>{comment.buyerId?.name || comment.author?.name || 'Anonymous'}</h4>
-                  <RatingContainer>
-                    <StarRating>
-                      {[...Array(5)].map((_, i) => (
-                        <StarIcon key={i} active={i < comment.rating}>★</StarIcon>
-                      ))}
-                    </StarRating>
-                    <span>{comment.rating}</span>
-                  </RatingContainer>
-                  <p>{comment.text}</p>
-                  <LikeButton 
-                    onClick={() => handleCommentReaction(comment._id, 'like')}
-                    disabled={!isLoggedIn}
-                  >
-                    <FaThumbsUp /> {comment.likeCount}
-                  </LikeButton>
-                  <DislikeButton 
-                    onClick={() => handleCommentReaction(comment._id, 'dislike')}
-                    disabled={!isLoggedIn}
-                  >
-                    <FaThumbsDown /> {comment.dislikeCount}
-                  </DislikeButton>
-                </CommentItem>
-              ))}
-            </CommentList>
-          ) : (
-            <NoReviews>Currently no reviews available</NoReviews>
-          )}
-          {isDelivered && canReview && (
-            <CommentForm onSubmit={handleCommentSubmit}>
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write your review here..."
-                required
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex flex-col lg:flex-row gap-12">
+          {/* Left Section - Images */}
+          <div className="lg:w-1/2">
+            <div className="relative aspect-w-1 aspect-h-1 mb-4">
+              <img
+                src={product.images[mainImageIndex]}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-lg shadow-lg"
               />
-              <div>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {product.images.map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`${product.name} thumbnail ${index + 1}`}
+                  className={`w-full h-20 object-cover cursor-pointer rounded ${index === mainImageIndex ? 'ring-2 ring-blue-500' : ''}`}
+                  onClick={() => handleImageClick(index)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Right Section - Product Details */}
+          <div className="lg:w-1/2">
+            <div className="flex items-center mb-6">
+              <div className="flex mr-2">
                 {[...Array(5)].map((_, i) => (
-                  <StarRating key={i}>
-                    <StarIcon
-                      onClick={() => handleRatingClick(i + 1)}
-                      active={i < rating}
-                    >
-                      ★
-                    </StarIcon>
-                  </StarRating>
+                  <FaStar key={i} className={`${i < Math.round(averageRating) ? 'text-yellow-400' : 'text-gray-300'} text-2xl`} />
                 ))}
               </div>
-              <button type="submit">Submit Review</button>
-            </CommentForm>
+              <span className="text-2xl font-bold">{averageRating}</span>
+              <span className="ml-2 text-gray-600">({comments.length} reviews)</span>
+            </div>
+            <p className="text-gray-700 text-lg mb-8">{product.description}</p>
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center">
+                <FaTruck className="text-blue-500 mr-3 text-xl" />
+                <span>Free delivery on orders over ₹500</span>
+              </div>
+              <div className="flex items-center">
+                <FaExchangeAlt className="text-blue-500 mr-3 text-xl" />
+                <span>Easy 30-day return policy</span>
+              </div>
+              <div className="flex items-center">
+                <FaShieldAlt className="text-blue-500 mr-3 text-xl" />
+                <span>2-year warranty included</span>
+              </div>
+              <div className="flex items-center">
+                <FaBox className="text-blue-500 mr-3 text-xl" />
+                <span>In stock: {product.stockQuantity} units available</span>
+              </div>
+              <div className="flex items-center">
+                <FaCreditCard className="text-blue-500 mr-3 text-xl" />
+                <span>Secure payment options available</span>
+              </div>
+              <div className="flex items-center">
+                <FaGift className="text-blue-500 mr-3 text-xl" />
+                <span>Gift wrapping available for ₹50</span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4 mb-8">
+              <button 
+                onClick={() => handleQuantityChange(-1)}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-full"
+              >
+                -
+              </button>
+              <span className="text-2xl font-semibold">{quantity}</span>
+              <button 
+                onClick={() => handleQuantityChange(1)}
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-full"
+              >
+                +
+              </button>
+            </div>
+            <div className="flex space-x-4 mb-8">
+              <button 
+                onClick={handleAddToCart}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center"
+              >
+                <FaShoppingCart className="mr-2" /> Add to Cart
+              </button>
+              <button 
+                onClick={handleBuyNow}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center"
+              >
+                <FaCartPlus className="mr-2" /> Buy Now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Features */}
+        <div className="mt-16">
+          <h2 className="text-3xl font-bold mb-8">Product Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {['High-quality craftsmanship', 'User-friendly design', 'Exceptional customer support', 'Eco-friendly materials', 'Wide accessory compatibility', 'Energy-efficient operation'].map((feature, index) => (
+              <div key={index} className="flex items-center bg-white p-4 rounded-lg shadow">
+                <FaCheck className="text-green-500 mr-3 text-xl" /> 
+                <span className="text-lg">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Product Specifications */}
+        <div className="mt-16">
+          <h2 className="text-3xl font-bold mb-8">Product Specifications</h2>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="w-full">
+              <tbody>
+                {[
+                  { label: 'Brand', value: product.brand },
+                  { label: 'Model', value: product.model },
+                  { label: 'Color', value: product.color },
+                  { label: 'Material', value: product.material },
+                  { label: 'Dimensions', value: product.dimensions },
+                  { label: 'Weight', value: product.weight },
+                  { label: 'Warranty', value: '2 years' },
+                  { label: 'Country of Origin', value: 'India' },
+                ].map((spec, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
+                    <td className="px-6 py-4 font-semibold">{spec.label}</td>
+                    <td className="px-6 py-4">{spec.value || 'N/A'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Customer Reviews */}
+        <div className="mt-16">
+          <h2 className="text-3xl font-bold mb-8">Customer Reviews</h2>
+          {comments.length > 0 ? (
+            <div className="space-y-8">
+              {comments.map((comment) => (
+                <div key={comment._id} className="bg-white rounded-lg shadow p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold">{comment.buyerId?.name || comment.author?.name || 'Anonymous'}</h3>
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <FaStar key={i} className={`${i < comment.rating ? 'text-yellow-400' : 'text-gray-300'} text-lg`} />
+                      ))}
+                      <span className="ml-2 text-lg text-gray-600">{comment.rating}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-4">{comment.text}</p>
+                  <div className="flex items-center space-x-6">
+                    <button 
+                      onClick={() => handleCommentReaction(comment._id, 'like')}
+                      className={`flex items-center ${isLoggedIn ? 'hover:text-blue-500' : 'cursor-not-allowed'} ${comment.likeCount > 0 ? 'text-blue-500' : 'text-gray-500'} transition duration-300 ease-in-out`}
+                      disabled={!isLoggedIn}
+                    >
+                      <FaThumbsUp className="mr-2 text-lg" /> {comment.likeCount}
+                    </button>
+                    <button 
+                      onClick={() => handleCommentReaction(comment._id, 'dislike')}
+                      className={`flex items-center ${isLoggedIn ? 'hover:text-red-500' : 'cursor-not-allowed'} ${comment.dislikeCount > 0 ? 'text-red-500' : 'text-gray-500'} transition duration-300 ease-in-out`}
+                      disabled={!isLoggedIn}
+                    >
+                      <FaThumbsDown className="mr-2 text-lg" /> {comment.dislikeCount}
+                    </button>
+                  </div>
+                </div>))}
+            </div>
+          ) : (
+            <p className="text-gray-600 italic text-center py-12 text-xl bg-white rounded-lg shadow">No reviews available yet. Be the first to review this product!</p>
           )}
-        </CommentSection>
-      </Container>
+
+          {/* Review Submission Form */}
+          {isDelivered && canReview && (
+            <div className="mt-12 bg-white rounded-lg shadow p-8">
+              <h3 className="text-2xl font-semibold mb-6">Write a Review</h3>
+              <form onSubmit={handleCommentSubmit}>
+                <div className="mb-6">
+                  <label htmlFor="review" className="block text-lg font-medium text-gray-700 mb-2">Your Review</label>
+                  <textarea
+                    id="review"
+                    rows="4"
+                    className="w-full px-4 py-3 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Share your thoughts about the product..."
+                    required
+                  ></textarea>
+                </div>
+                <div className="mb-6">
+                  <span className="block text-lg font-medium text-gray-700 mb-2">Your Rating</span>
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleRatingClick(i + 1)}
+                        className={`text-3xl ${i < rating ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none transition duration-300 hover:scale-110`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full focus:outline-none focus:shadow-outline transition duration-300 ease-in-out transform hover:scale-105"
+                >
+                  Submit Review
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Related Products */}
+      <div className="mt-16">
+        <h2 className="text-3xl font-bold mb-8">Related Products</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {relatedProducts.map((relatedProduct) => (
+            <div key={relatedProduct._id} className="bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 ease-in-out transform hover:scale-105">
+              <img 
+                src={relatedProduct.images[0]} 
+                alt={relatedProduct.name} 
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h3 className="font-semibold text-lg mb-2">{relatedProduct.name}</h3>
+                <p className="text-gray-600">{relatedProduct.description.substring(0, 100)}...</p>
+                <div className="mt-4 flex justify-between items-center">
+                  <span className="font-bold text-lg">₹{relatedProduct.price.toFixed(2)}</span>
+                  <Link 
+                    to={`/product/${relatedProduct._id}`} 
+                    className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-300"
+                  >
+                    View
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+        {/* Social Share */}
+        <div className="mt-16 flex justify-center space-x-6">
+          <button
+            onClick={() => handleShare('Facebook')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full flex items-center transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            <FaFacebook className="mr-2 text-xl" /> Share on Facebook
+          </button>
+          <button
+            onClick={() => handleShare('Twitter')}
+            className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-full flex items-center transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            <FaTwitter className="mr-2 text-xl" /> Share on Twitter
+          </button>
+        </div>
+      </div>
+
+      {/* FAQ Section */}
+      <section className="bg-gray-100 py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
+          <div className="max-w-3xl mx-auto space-y-6">
+            {[
+              { q: "What is the return policy?", a: "We offer a 30-day return policy for all products. If you're not satisfied, you can return the item for a full refund." },
+              { q: "How long does shipping take?", a: "Shipping times vary depending on your location. Generally, orders are delivered within 3-7 business days." },
+              { q: "Is the product covered by warranty?", a: "Yes, this product comes with a 2-year manufacturer's warranty covering defects in materials and workmanship." },
+              { q: "Can I cancel my order?", a: "You can cancel your order within 24 hours of placing it. After that, it may have already been processed for shipping." }
+            ].map((faq, index) => (
+              <div key={index} className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-xl font-semibold mb-2">{faq.q}</h3>
+                <p className="text-gray-700">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <Footer />
-    </>
+    </div>
   );
 };
 

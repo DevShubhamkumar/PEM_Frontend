@@ -99,9 +99,8 @@ const BuyerProfile = () => {
             address: profileResponse.data.buyerFields?.address || '',
             contactNumber: profileResponse.data.buyerFields?.contactNumber || '',
           });
-          setImagePreview(profileResponse.data.profilePicture || 'default-profile-picture.jpg');
-        } else {
-          throw new Error('Profile response is missing data');
+          // Use the profilePicture URL directly from the backend response
+          setImagePreview(profileResponse.data.profilePicture || 'https://via.placeholder.com/200x200');
         }
 
         setLoading(false);
@@ -158,9 +157,10 @@ const BuyerProfile = () => {
       formData.append('profilePicture', profileImage);
     }
 
+    
     try {
       const response = await axios.put(
-        `${BASE_URL}/api/users/${userId}/profile`,
+        `${BASE_URL}/api/buyers/${userId}/profile`,
         formData,
         {
           headers: {
@@ -169,8 +169,11 @@ const BuyerProfile = () => {
           },
         }
       );
-
-      setBuyer(response.data);
+    
+      // Update the buyer state with the new data
+      setBuyer(response.data.user);
+      // Update the image preview with the new profile picture URL
+      setImagePreview(response.data.user.profilePicture || 'https://via.placeholder.com/200x200');
       setEditMode(false);
       setProfileImage(null);
       setSuccessMessage('Profile updated successfully');

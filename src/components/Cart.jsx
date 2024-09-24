@@ -40,7 +40,7 @@ const CartPage = () => {
   useEffect(() => {
     fetchCartData();
   }, [fetchCartData]);
-
+  
   const getDiscountedPrice = (price, discount) => {
     return price - (price * discount) / 100;
   };
@@ -67,7 +67,7 @@ const CartPage = () => {
         await handleRemoveCartItem(cartItemId);
         return;
       }
-
+  
       const response = await fetch(`${BASE_URL}/api/cart/${cartItemId}`, {
         method: 'PUT',
         headers: { 
@@ -76,15 +76,17 @@ const CartPage = () => {
         },
         body: JSON.stringify({ quantity: newQuantity }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to update cart item');
       }
-
+  
       const updatedItem = await response.json();
-      addToCart(updatedItem);
-
-      toast.success('Cart updated successfully.');
+      
+      // Update the cart item directly
+      addToCart({ ...updatedItem, quantity: newQuantity });
+  
+      // toast.success('Cart updated successfully.');
     } catch (error) {
       console.error('Error updating cart item quantity:', error);
       toast.error('Failed to update cart. Please try again.');

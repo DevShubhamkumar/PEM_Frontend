@@ -1,152 +1,11 @@
+// UserDetailsPage.js
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import axios from 'axios';
+import { FaUser, FaPhone, FaMapMarkerAlt, FaCity, FaGlobeAmericas, FaLandmark, FaEdit, FaTrash, FaTruck, FaHome, FaPlus, FaLocationArrow } from 'react-icons/fa';
 import Footer from './Footer';
 import { BASE_URL } from '../api';
-
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #f0f4f8;
-  min-height: 100vh;
-`;
-
-const ContentWrapper = styled.div`
-  max-width: 1200px;
-  width: 100%;
-  padding: 2rem;
-`;
-
-const Card = styled.div`
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  margin-bottom: 2rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const Header = styled.h2`
-  font-size: 1.8rem;
-  color: #2c3e50;
-  margin-bottom: 1.5rem;
-  text-align: center;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #34495e;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: white;
-  transition: all 0.3s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-  }
-`;
-
-const Button = styled.button`
-  background-color: #3498db;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  grid-column: 1 / -1;
-
-  &:hover {
-    background-color: #2980b9;
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const AddressGrid = styled.div`
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-`;
-
-const AddressCard = styled.div`
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-`;
-
-const AddressActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
-`;
-
-const ActionButton = styled.button`
-  background-color: transparent;
-  color: #3498db;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    color: #2980b9;
-    text-decoration: underline;
-  }
-`;
 
 const UserDetailsPage = () => {
   const [formData, setFormData] = useState({
@@ -161,6 +20,8 @@ const UserDetailsPage = () => {
   });
   const [addresses, setAddresses] = useState([]);
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -169,46 +30,33 @@ const UserDetailsPage = () => {
 
   const getUserIdFromToken = () => {
     const token = localStorage.getItem('token');
-    console.log('Token from localStorage:', token);
     if (!token) return null;
     
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('Decoded payload:', payload);
       return payload.userId;
     } catch (error) {
       console.error('Error decoding token:', error);
       return null;
     }
   };
-  
-  
 
   const fetchUserAddresses = async () => {
     try {
       const userId = getUserIdFromToken();
-console.log('UserId from token:', userId);
-
-
-
       if (!userId) {
-        console.error('User ID not found in token');
         toast.error('User ID not found');
         return;
       }
 
       const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const response = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, config);
-      console.log('Fetched addresses:', response.data);
+
       setAddresses(response.data.addresses);
     } catch (error) {
-      console.error('Error fetching addresses:', error.response || error);
+      console.error('Error fetching addresses:', error);
       toast.error('Error fetching addresses');
     }
   };
@@ -216,22 +64,14 @@ console.log('UserId from token:', userId);
   const handleSaveAddress = async (e) => {
     e.preventDefault();
 
-    if (!validateInput()) {
-      return;
-    }
+    if (!validateInput()) return;
 
     try {
       const userId = getUserIdFromToken();
-
       if (!userId) {
-        console.error('User ID not found in token');
         toast.error('User ID not found');
         return;
       }
-
-      const addressData = {
-        ...formData,
-      };
 
       const token = localStorage.getItem('token');
       const config = {
@@ -241,73 +81,47 @@ console.log('UserId from token:', userId);
         },
       };
 
-      let response;
-      if (editingAddressId) {
-        response = await axios.put(
-          `${BASE_URL}/api/users/${userId}/addresses/${editingAddressId}`,
-          addressData,
-          config
-        );
-        console.log('Address update response:', response.data);
-        toast.success('Address updated successfully');
-      } else {
-        response = await axios.post(
-          `${BASE_URL}/api/users/${userId}/addresses`,
-          addressData,
-          config
-        );
-        console.log('New address response:', response.data);
-        toast.success('Address saved successfully');
-      }
+      const response = editingAddressId
+        ? await axios.put(`${BASE_URL}/api/users/${userId}/addresses/${editingAddressId}`, formData, config)
+        : await axios.post(`${BASE_URL}/api/users/${userId}/addresses`, formData, config);
 
+      toast.success(editingAddressId ? 'Address updated successfully' : 'Address saved successfully');
       fetchUserAddresses();
       resetForm();
       setEditingAddressId(null);
+      setShowForm(false);
     } catch (error) {
-      console.error('Error saving/updating address:', error.response ? error.response.data : error.message);
-      toast.error('Error saving/updating address: ' + (error.response ? error.response.data.message : error.message));
+      console.error('Error saving/updating address:', error);
+      toast.error(`Error ${editingAddressId ? 'updating' : 'saving'} address: ${error.response?.data?.message || error.message}`);
     }
   };
 
   const handleEditAddress = (addressId) => {
-    console.log('Editing address:', addressId);
     const addressToEdit = addresses.find((address) => address._id === addressId);
     if (addressToEdit) {
-      console.log('Address to edit:', addressToEdit);
       setFormData(addressToEdit);
       setEditingAddressId(addressId);
+      setShowForm(true);
     }
   };
 
   const handleDeleteAddress = async (addressId) => {
     try {
       const userId = getUserIdFromToken();
-
       if (!userId) {
-        console.error('User ID not found in token');
         toast.error('User ID not found');
         return;
       }
 
       const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.delete(`${BASE_URL}/api/users/${userId}/addresses/${addressId}`, config);
-      console.log('Delete response:', response.data);
-      
-      if (response.data.message === "Address deleted successfully") {
-        toast.success('Address deleted successfully');
-        fetchUserAddresses(); // Refresh the address list
-      } else {
-        toast.error('Error deleting address');
-      }
+      await axios.delete(`${BASE_URL}/api/users/${userId}/addresses/${addressId}`, config);
+      toast.success('Address deleted successfully');
+      fetchUserAddresses();
     } catch (error) {
-      console.error('Error deleting address:', error.response ? error.response.data : error.message);
-      toast.error('Error deleting address: ' + (error.response ? error.response.data.message : error.message));
+      console.error('Error deleting address:', error);
+      toast.error(`Error deleting address: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -339,11 +153,6 @@ console.log('UserId from token:', userId);
       return false;
     }
 
-    if (!/^[A-Za-z\s.,'-]+$/.test(locality) || !/^[A-Za-z\s.,'-]+$/.test(city)) {
-      toast.error('Locality and city should contain only letters, spaces, and common punctuation');
-      return false;
-    }
-
     return true;
   };
 
@@ -372,175 +181,244 @@ console.log('UserId from token:', userId);
       case 'pinCode':
         newValue = value.replace(/\D/g, '');
         break;
-      case 'locality':
-      case 'city':
-        newValue = value.replace(/[^A-Za-z\s.,'-]/g, '');
-        break;
       default:
         break;
     }
 
-    setFormData((prevData) => {
-      const newData = {
-        ...prevData,
-        [name]: newValue,
-      };
-      console.log('Updated form data:', newData);
-      return newData;
-    });
+    setFormData((prevData) => ({ ...prevData, [name]: newValue }));
   };
-
+  const fetchUserLocation = () => {
+    setIsLoadingLocation(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          reverseGeocodeIndia(latitude, longitude);
+        },
+        error => {
+          console.error("Error getting location:", error);
+          setIsLoadingLocation(false);
+          handleLocationError(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      setIsLoadingLocation(false);
+      toast.error("Geolocation is not supported by your browser. Please enter your address manually.", {
+        duration: 4000,
+      });
+    }
+  };
+  
+  const handleLocationError = (error) => {
+    let message;
+    switch(error.code) {
+      case error.PERMISSION_DENIED:
+        message = "Location access was denied. You can enter your address manually.";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        message = "Location information is unavailable. Please enter your address manually.";
+        break;
+      case error.TIMEOUT:
+        message = "The request to get user location timed out. Please try again or enter your address manually.";
+        break;
+      default:
+        message = "An unknown error occurred. Please enter your address manually.";
+    }
+    toast.error(message, { duration: 5000 });
+  };
+  
+  const reverseGeocodeIndia = async (latitude, longitude) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/reverse-geocode?latitude=${latitude}&longitude=${longitude}`);
+      const result = response.data;
+      setFormData(prevData => ({
+        ...prevData,
+        pinCode: result.pinCode || '',
+        locality: result.locality || '',
+        address: result.address || '',
+        city: result.city || '',
+        state: result.state || '',
+      }));
+      toast.success("Location fetched. Please verify and adjust if needed.");
+    } catch (error) {
+      console.error("Error in reverse geocoding:", error);
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(`Error fetching address details: ${errorMessage}. Please enter manually.`);
+    } finally {
+      setIsLoadingLocation(false);
+    }
+  };
+  
+  // New function to search by PIN code
+  const searchByPinCode = async (pincode) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/pincode-search?pincode=${pincode}`);
+      const results = response.data;
+      if (results.length > 0) {
+        const result = results[0]; // Use the first result
+        setFormData(prevData => ({
+          ...prevData,
+          pinCode: result.pinCode || '',
+          locality: result.locality || '',
+          city: result.city || '',
+          state: result.state || '',
+        }));
+        toast.success("Address details fetched based on PIN code. Please verify and adjust if needed.");
+      } else {
+        toast.error("No results found for the given PIN code.");
+      }
+    } catch (error) {
+      console.error("Error in PIN code search:", error);
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(`Error fetching address details: ${errorMessage}. Please enter manually.`);
+    }
+  };
   return (
-    <PageContainer>
+    <div className="bg-gray-100 min-h-screen">
       <Toaster />
-      <ContentWrapper>
-        <Card>
-          <Header>{editingAddressId ? 'Edit Address' : 'Add New Address'}</Header>
-          <Form onSubmit={handleSaveAddress}>
-            <FormGroup>
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                maxLength={50}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
-                id="phoneNumber"
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                maxLength={10}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="pinCode">Pin Code</Label>
-              <Input
-                id="pinCode"
-                type="text"
-                name="pinCode"
-                value={formData.pinCode}
-                onChange={handleInputChange}
-                maxLength={6}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="locality">Locality</Label>
-              <Input
-                id="locality"
-                type="text"
-                name="locality"
-                value={formData.locality}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="address">Full Address</Label>
-              <Input
-                id="address"
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="city">City/District/Town</Label>
-              <Input
-                id="city"
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="state">State</Label>
-              <Select id="state" name="state" value={formData.state} onChange={handleInputChange} required>
-                <option value="">Select State</option>
-                <option value="Andhra Pradesh">Andhra Pradesh</option>
-                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                <option value="Assam">Assam</option>
-                <option value="Bihar">Bihar</option>
-                <option value="Chhattisgarh">Chhattisgarh</option>
-                <option value="Goa">Goa</option>
-                <option value="Gujarat">Gujarat</option>
-                <option value="Haryana">Haryana</option>
-                <option value="Himachal Pradesh">Himachal Pradesh</option>
-                <option value="Jharkhand">J&K</option>
-                <option value="Jharkhand">Jharkhand</option>
-                <option value="Karnataka">Karnataka</option>
-                <option value="Kerala">Kerala</option>
-                <option value="Madhya Pradesh">Madhya Pradesh</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Manipur">Manipur</option>
-                <option value="Meghalaya">Meghalaya</option>
-                <option value="Mizoram">Mizoram</option>
-                <option value="Nagaland">Nagaland</option>
-                <option value="Odisha">Odisha</option>
-                <option value="Punjab">Punjab</option>
-                <option value="Rajasthan">Rajasthan</option>
-                <option value="Sikkim">Sikkim</option>
-                <option value="Tamil Nadu">Tamil Nadu</option>
-                <option value="Telangana">Telangana</option>
-                <option value="Tripura">Tripura</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-                <option value="Uttarakhand">Uttarakhand</option>
-                <option value="West Bengal">West Bengal</option>
-              </Select>
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="landmark">Landmark (Optional)</Label>
-              <Input
-                id="landmark"
-                type="text"
-                name="landmark"
-                value={formData.landmark}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
-            <Button type="submit">{editingAddressId ? 'Update Address' : 'Save Address'}</Button>
-          </Form>
-        </Card>
+      
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Manage Your Addresses</h1>
+          <p className="text-xl mb-8">Keep your delivery information up to date for a seamless shopping experience.</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
 
-        <Card>
-          <Header>Saved Addresses</Header>
-          <AddressGrid>
+      <div className="container mx-auto px-4 py-12">
+        {/* Address Form Section */}
+        <section className={`bg-white rounded-lg shadow-lg p-6 mb-12 ${showForm ? '' : 'hidden'}`}>
+          <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">{editingAddressId ? 'Edit Address' : 'Add New Address'}</h2>
+          <button 
+            onClick={fetchUserLocation}
+            disabled={isLoadingLocation}
+            className="mb-4 bg-blue-500 text-white py-2 px-4 rounded-full font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center w-full md:w-auto"
+          >
+            <FaLocationArrow className="mr-2" />
+            {isLoadingLocation ? 'Fetching Location...' : 'Use My Current Location'}
+          </button>
+          <p className="text-sm text-gray-600 mb-4">
+            Or <button onClick={() => setShowForm(true)} className="text-blue-500 underline">enter your address manually</button>
+          </p>
+          <form onSubmit={handleSaveAddress} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input icon={FaUser} name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder="Full Name" required />
+            <Input icon={FaPhone} name="phoneNumber" value={formData.phoneNumber} onChange={handleInputChange} placeholder="Phone Number" required maxLength={10} />
+            <Input icon={FaMapMarkerAlt} name="pinCode" value={formData.pinCode} onChange={handleInputChange} onBlur={() => { if (formData.pinCode.length === 6) { searchByPinCode(formData.pinCode); } }} placeholder="Pin Code" required maxLength={6}/>            <Input icon={FaCity} name="locality" value={formData.locality} onChange={handleInputChange} placeholder="Locality" required />
+            <Input icon={FaMapMarkerAlt} name="address" value={formData.address} onChange={handleInputChange} placeholder="Full Address" required className="md:col-span-2" />
+            <Input icon={FaCity} name="city" value={formData.city} onChange={handleInputChange} placeholder="City/District/Town" required />
+            <Select icon={FaGlobeAmericas} name="state" value={formData.state} onChange={handleInputChange} required />
+            <Input icon={FaLandmark} name="landmark" value={formData.landmark} onChange={handleInputChange} placeholder="Landmark (Optional)" className="md:col-span-2" />
+            <button type="submit" className="bg-indigo-600 text-white py-3 px-6 rounded-full font-semibold text-lg hover:bg-indigo-700 transition duration-300 md:col-span-2">
+              {editingAddressId ? 'Update Address' : 'Save Address'}
+            </button>
+          </form>
+        </section>
+
+        {/* Saved Addresses Section */}
+        <section className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-gray-800">Your Addresses</h2>
+            <button 
+              onClick={() => setShowForm(!showForm)} 
+              className="bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold text-lg hover:bg-indigo-700 transition duration-300 flex items-center"
+            >
+              <FaPlus className="mr-2" /> {showForm ? 'Hide Form' : 'Add New Address'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {addresses.map((address) => (
-              <AddressCard key={address._id}>
-                <div>
-                  <p><strong>{address.fullName}</strong></p>
-                  <p>{address.address}</p>
-                  <p>{address.city}, {address.state} - {address.pinCode}</p>
-                  <p>Phone: {address.phoneNumber}</p>
-                  {address.landmark && <p>Landmark: {address.landmark}</p>}
-                </div>
-                <AddressActions>
-                  <ActionButton onClick={() => handleEditAddress(address._id)}>Edit</ActionButton>
-                  <ActionButton onClick={() => handleDeleteAddress(address._id)}>Delete</ActionButton>
-                  <ActionButton onClick={() => handleDeliverHere(address)}>Deliver Here</ActionButton>
-                </AddressActions>
-              </AddressCard>
+              <AddressCard 
+                key={address._id} 
+                address={address} 
+                onEdit={handleEditAddress} 
+                onDelete={handleDeleteAddress} 
+                onDeliverHere={handleDeliverHere} 
+              />
             ))}
-          </AddressGrid>
-          {addresses.length === 0 && <p>No addresses found. Use the form above to add a new address.</p>}
-        </Card>
-      </ContentWrapper>
+          </div>
+          {addresses.length === 0 && (
+            <div className="text-center py-12">
+              <FaHome className="text-6xl text-gray-400 mx-auto mb-4" />
+              <p className="text-xl text-gray-600">You haven't added any addresses yet.</p>
+              <button 
+                onClick={() => setShowForm(true)} 
+                className="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-full font-semibold hover:bg-indigo-700 transition duration-300"
+              >
+                Add Your First Address
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
       <Footer />
-    </PageContainer>
+    </div>
   );
 };
+
+const Input = ({ icon: Icon, name, value, onChange, placeholder, required, maxLength, className }) => (
+  <div className={`relative ${className}`}>
+    <Icon className="absolute top-3 left-3 text-gray-400" />
+    <input
+      type="text"
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      maxLength={maxLength}
+      className="w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+  </div>
+);
+
+const Select = ({ icon: Icon, name, value, onChange, required }) => (
+  <div className="relative">
+    <Icon className="absolute top-3 left-3 text-gray-400" />
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      required={required}
+      className="w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      <option value="">Select State</option>
+      {['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'J&K', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'].map((state) => (
+        <option key={state} value={state}>{state}</option>
+      ))}
+    </select>
+  </div>
+);
+
+const AddressCard = ({ address, onEdit, onDelete, onDeliverHere }) => (
+  <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition duration-300 hover:shadow-md">
+    <h3 className="font-semibold text-lg mb-2 text-gray-800">{address.fullName}</h3>
+    <p className="text-gray-600 mb-1">{address.address}</p>
+    <p className="text-gray-600 mb-1">{address.city}, {address.state} - {address.pinCode}</p>
+    <p className="text-gray-600 mb-2">Phone: {address.phoneNumber}</p>
+    {address.landmark && <p className="text-gray-600 mb-2">Landmark: {address.landmark}</p>}
+    <div className="flex justify-end space-x-2 mt-4">
+      <button onClick={() => onEdit(address._id)} className="text-blue-600 hover:text-blue-800 transition duration-300">
+        <FaEdit className="text-xl" />
+      </button>
+      <button onClick={() => onDelete(address._id)} className="text-red-600 hover:text-red-800 transition duration-300">
+        <FaTrash className="text-xl" />
+      </button>
+      <button 
+        onClick={() => onDeliverHere(address)} 
+        className="bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600 transition duration-300 flex items-center"
+      >
+        <FaTruck className="mr-1" /> Deliver Here
+      </button>
+    </div>
+  </div>
+);
 
 export default UserDetailsPage;

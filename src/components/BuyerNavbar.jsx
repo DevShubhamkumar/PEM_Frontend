@@ -114,6 +114,39 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
 
   const { fetchCategories } = useAppContext();
   const [categories, setCategories] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
+
+  useEffect(() => {
+    const fetchProfilePicture = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Token not found');
+        }
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const userId = decodedToken.userId;
+
+        const response = await axios.get(`${BASE_URL}/api/users/${userId}/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response && response.data && response.data.profilePicture) {
+          const profilePictureUrl = response.data.profilePicture.startsWith('http')
+            ? response.data.profilePicture
+            : `${BASE_URL}/${response.data.profilePicture}`;
+          setProfilePicture(profilePictureUrl);
+          localStorage.setItem('buyerProfilePicture', profilePictureUrl);
+        } else {
+          setProfilePicture('/default-profile-picture.png');
+        }
+      } catch (error) {
+        console.error('Error fetching profile picture:', error);
+        setProfilePicture('/default-profile-picture.png');
+      }
+    };
+
+    fetchProfilePicture();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -225,15 +258,15 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
 
   const handleLogoutWithClear = useCallback(() => {
     localStorage.removeItem('buyerProfilePicture');
+    localStorage.removeItem('token');
     handleLogout();
   }, [handleLogout]);
 
+  const memoizedProfilePicture = useMemo(() => {
+    return profilePicture || localStorage.getItem('buyerProfilePicture') || '/default-profile-picture.png';
+  }, [profilePicture]);
+  
   const memoizedCategories = useMemo(() => categories, [categories]);
-
-  const profilePictureUrl = useMemo(() => {
-    return localStorage.getItem('buyerProfilePicture') || 
-      (buyerData.profilePicture ? `${BASE_URL}/${buyerData.profilePicture}` : '/default-profile-picture.png');
-  }, [buyerData.profilePicture]);
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -327,8 +360,8 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
             </NavLink>
             <NavLink to="/buyer/profile" className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
               <img
-                src={profilePictureUrl}
-                alt={buyerData.profilePicture ? "Profile" : "Default Profile"}
+                src={memoizedProfilePicture}
+                alt="Profile"
                 className="w-8 h-8 rounded-full mr-2"
               />
               {buyerData.name}
@@ -355,8 +388,9 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
           </div>
         </div>
       </div>
-{/* Mobile menu */}
-<MobileMenu isOpen={isOpen}>
+
+      {/* Mobile menu */}
+      <MobileMenu isOpen={isOpen}>
         <form onSubmit={handleSearch} className="relative mb-4">
           <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400 shadow-md">
             <input
@@ -425,8 +459,8 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
           onClick={handleNavLinkClick}
         >
           <img
-            src={profilePictureUrl}
-            alt={buyerData.profilePicture ? "Profile" : "Default Profile"}
+            src={memoizedProfilePicture}
+            alt="Profile"
             className="w-8 h-8 rounded-full mr-2"
           />
           {buyerData.name}

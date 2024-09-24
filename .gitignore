@@ -1,6 +1,11 @@
+# Node modules
 node_modules/
+
+# Cache files
 .cache/
+
+# Pack files
 *.pack
-node_modules/
-.cache/
-*.pack
+
+# Environment variables
+.env

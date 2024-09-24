@@ -131,7 +131,7 @@ const OrderItem = ({ order, onStatusChange, onViewDetails }) => {
             </p>
           </div>
           <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-            <p className="font-medium text-gray-900">${order.amount.toFixed(2)}</p>
+            <p className="font-medium text-gray-900">₹{order.amount.toFixed(2)}</p>
           </div>
         </div>
         <div className="mt-4 flex justify-between">
@@ -183,7 +183,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
                       />
                       <div>
                         <h4 className="text-lg font-semibold">{item.productName}</h4>
-                        <p className="text-gray-600">Price: ${item.price.toFixed(2)}</p>
+                        <p className="text-gray-600">Price: ₹{item.price.toFixed(2)}</p>
                         <p className="text-gray-600">Quantity: {item.quantity}</p>
                       </div>
                     </div>

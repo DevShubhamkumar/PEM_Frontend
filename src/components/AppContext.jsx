@@ -49,12 +49,22 @@ function appReducer(state, action) {
       return { ...state, categoriesPage: action.payload };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
-    case 'ADD_TO_CART':
-      return { ...state, cart: [...state.cart, action.payload] };
-    case 'REMOVE_FROM_CART':
-      return { ...state, cart: state.cart.filter(item => item.id !== action.payload) };
-    case 'CLEAR_CART':
-      return { ...state, cart: [] };
+      case 'ADD_TO_CART':
+  const existingItemIndex = state.cart.findIndex(item => item._id === action.payload._id);
+  if (existingItemIndex !== -1) {
+    // If item exists, replace its quantity
+    const updatedCart = state.cart.map((item, index) => 
+      index === existingItemIndex ? { ...item, quantity: action.payload.quantity } : item
+    );
+    return { ...state, cart: updatedCart };
+  } else {
+    // If item doesn't exist, add it to the cart
+    return { ...state, cart: [...state.cart, action.payload] };
+  }
+      case 'REMOVE_FROM_CART':
+        return { ...state, cart: state.cart.filter(item => item._id !== action.payload) };
+        case 'CLEAR_CART':
+  return { ...state, cart: [] };
     case 'SET_USER':
       return { ...state, user: action.payload, loading: false, error: null };
   
@@ -70,6 +80,18 @@ function appReducer(state, action) {
       return { ...state, orders: action.payload };
     case 'UPDATE_PROFILE_IMAGE':
       return { ...state, profileImage: action.payload };
+      case 'UPDATE_PRODUCT':
+        return {
+          ...state,
+          products: state.products.map(product => 
+            product._id === action.payload._id ? action.payload : product
+          )
+        };
+        case 'DELETE_PRODUCT':
+          return {
+            ...state,
+            products: state.products.filter(product => product._id !== action.payload)
+          };
     default:
       return state;
   }
@@ -224,9 +246,8 @@ export function AppProvider({ children }) {
   }, []);
 
   const addToCart = useCallback((item) => {
-    dispatch({ type: 'ADD_TO_CART', payload: item });
-  }, []);
-
+  dispatch({ type: 'ADD_TO_CART', payload: item });
+}, []);
   const removeFromCart = useCallback((itemId) => {
     dispatch({ type: 'REMOVE_FROM_CART', payload: itemId });
   }, []);
@@ -234,6 +255,7 @@ export function AppProvider({ children }) {
   const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
   }, []);
+  
 
   const fetchUserProfile = useCallback(async () => {
   if (userProfileCache.current) {
@@ -395,30 +417,40 @@ export function AppProvider({ children }) {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
-
+  
+//  for adming udpateorder status delivered shipped 
   const updateOrderStatus = useCallback(async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      const response = await axios.put(
         `${BASE_URL}/api/orders/status`,
         { orderId, deliveryStatus: newStatus },
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
-      dispatch({
-        type: 'SET_ORDERS',
-        payload: state.orders.map((order) =>
-          order._id === orderId ? { ...order, deliveryStatus: newStatus } : order
-        ),
-      });
+
+      if (response.status === 200) {
+        dispatch({
+          type: 'SET_ORDERS',
+          payload: state.orders.map((order) =>
+            order._id === orderId ? { ...order, deliveryStatus: newStatus } : order
+          ),
+        });
+        return response.data;
+      } else {
+        throw new Error('Failed to update order status');
+      }
     } catch (error) {
+      console.error('Error updating order status:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;
     }
-  }, [state.orders]);
+  }, [state.orders, dispatch]);
+  
 
   const deleteProduct = useCallback(async (productId) => {
     try {
@@ -429,38 +461,46 @@ export function AppProvider({ children }) {
         },
       });
       dispatch({
-        type: 'SET_PRODUCTS',
-        payload: state.products.filter((product) => product._id !== productId),
+        type: 'DELETE_PRODUCT',
+        payload: productId,
       });
     } catch (error) {
+      console.error('Error deleting product:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;
     }
-  }, [state.products]);
-
+  }, []);
+  // for admin product status on off 
   const toggleProductStatus = useCallback(async (productId, isActive) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `${BASE_URL}/api/products/${productId}`,
+        `${BASE_URL}/api/products/${productId}/toggle-status`,
         { isActive },
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         }
       );
-      dispatch({
-        type: 'SET_PRODUCTS',
-        payload: state.products.map((product) =>
-          product._id === productId ? response.data : product
-        ),
-      });
+      
+      if (response.status === 200) {
+        dispatch({
+          type: 'UPDATE_PRODUCT',
+          payload: response.data,
+        });
+        return response.data;
+      } else {
+        throw new Error('Failed to update product status');
+      }
     } catch (error) {
+      console.error('Error toggling product status:', error);
       dispatch({ type: 'SET_ERROR', payload: error.message });
       throw error;
     }
-  }, [state.products]);
+  }, []);
+
  const contextValue = useMemo(() => ({
     ...state,
     login,
@@ -480,6 +520,9 @@ export function AppProvider({ children }) {
     fetchAdminReports,
     fetchAdminData,
     fetchOrders,
+    updateOrderStatus,
+    toggleProductStatus,
+    deleteProduct
   }), [
     state,
     login,
@@ -499,6 +542,9 @@ export function AppProvider({ children }) {
     fetchAdminReports,
     fetchAdminData,
     fetchOrders,
+    updateOrderStatus,
+    toggleProductStatus,
+    deleteProduct
   ]);
 
   return (

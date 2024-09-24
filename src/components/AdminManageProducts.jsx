@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FaPlus, FaTrash, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { FaToggleOn, FaToggleOff, FaTrash } from 'react-icons/fa';
 import { useAppContext } from './AppContext';
+import toast, { Toaster } from 'react-hot-toast';
 
 const AdminManageProducts = () => {
   const [filterCategory, setFilterCategory] = useState('');
@@ -15,29 +15,54 @@ const AdminManageProducts = () => {
     loading, 
     error, 
     fetchAdminData, 
-    deleteProduct, 
-    toggleProductStatus 
+    toggleProductStatus,
+    deleteProduct 
   } = useAppContext();
 
   useEffect(() => {
     fetchAdminData();
   }, [fetchAdminData]);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct(id);
-      } catch (error) {
-        console.error('Error deleting product:', error);
-      }
+  const handleToggleProductStatus = async (id, isActive) => {
+    try {
+      await toggleProductStatus(id, isActive);
+      toast.success(`Product status ${isActive ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+      toast.error('Error toggling product status');
     }
   };
 
-  const handleToggleProductStatus = async (id, isEnabled) => {
+  const handleDelete = async (id) => {
+    toast((t) => (
+      <div>
+        <p>Are you sure you want to delete this product?</p>
+        <div>
+          <button
+            onClick={() => {
+              deleteProductConfirmed(id);
+              toast.dismiss(t.id);
+            }}
+            className="mr-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: 5000 });
+  };
+
+  const deleteProductConfirmed = async (id) => {
     try {
-      await toggleProductStatus(id, isEnabled);
+      await deleteProduct(id);
+      toast.success('Product deleted successfully');
     } catch (error) {
-      console.error('Error toggling product status:', error);
+      toast.error('Error deleting product');
     }
   };
 
@@ -45,7 +70,6 @@ const AdminManageProducts = () => {
     const categoryMatch = filterCategory === '' || product.category.toString() === filterCategory;
     const itemTypeMatch = filterItemType === '' || product.itemType.toString() === filterItemType;
     const brandMatch = filterBrand === '' || product.brand.toString() === filterBrand;
-
     return categoryMatch && itemTypeMatch && brandMatch;
   });
 
@@ -82,18 +106,19 @@ const AdminManageProducts = () => {
 
   return (
     <div className="admin-manage-products-page w-full bg-gray-100">
-      <section className="products-header relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+      <Toaster position="top-right" />
+      <section className="products-header relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-12 sm:py-16 md:py-20">
         <div className="container mx-auto px-4 z-10 relative">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">Manage Products</h1>
-          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Efficiently manage your product catalog</p>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 animate-fade-in-down">Manage Products</h1>
+          <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 animate-fade-in-up">View, manage, and delete products from your catalog</p>
         </div>
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="wave-bottom"></div>
       </section>
 
-      <section className="products-content py-20">
+      <section className="products-content py-8 sm:py-12 md:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <FilterSelect
               id="filterCategory"
               label="Filter by Category"
@@ -117,7 +142,7 @@ const AdminManageProducts = () => {
             />
           </div>
 
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -125,7 +150,7 @@ const AdminManageProducts = () => {
                     <th
                       key={header}
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
                       {header}
                     </th>
@@ -135,15 +160,15 @@ const AdminManageProducts = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProducts.map((product) => (
                   <tr key={product._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{product.description.substring(0, 50)}...</td>
-                    <td className="px-6 py-4 whitespace-nowrap">${product.price.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{product.stock}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{product.discount}%</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getCategoryName(product.category)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getItemTypeName(product.itemType)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getBrandName(product.brand)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{product.name}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{product.description.substring(0, 50)}...</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">₹{product.price.toFixed(2)}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{product.stock}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{product.discount}%</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{getCategoryName(product.category)}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{getItemTypeName(product.itemType)}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">{getBrandName(product.brand)}</td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleToggleProductStatus(product._id, !product.isActive)}
                         className={`${
@@ -153,10 +178,7 @@ const AdminManageProducts = () => {
                         {product.isActive ? <FaToggleOn size={24} /> : <FaToggleOff size={24} />}
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link to={`/edit-product/${product._id}`} className="text-indigo-600 hover:text-indigo-900 mr-4">
-                        <FaEdit />
-                      </Link>
+                    <td className="px-6 sm:px-6 py-4 whitespace-nowrap text-m font-medium">
                       <button
                         onClick={() => handleDelete(product._id)}
                         className="text-red-600 hover:text-red-900"
@@ -169,18 +191,8 @@ const AdminManageProducts = () => {
               </tbody>
             </table>
           </div>
-
-          <div className="mt-8 flex justify-center">
-            <Link
-              to="/add-product"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <FaPlus className="mr-2" /> Add Product
-            </Link>
-          </div>
         </div>
       </section>
-
     </div>
   );
 };

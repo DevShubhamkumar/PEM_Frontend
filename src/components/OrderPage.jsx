@@ -1,246 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import { FaStar, FaTimes, FaChevronDown } from 'react-icons/fa';
 import toast, { Toaster } from 'react-hot-toast';
-import { FaStar, FaTimes } from 'react-icons/fa';
 import { BASE_URL } from '../api';
 
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-`;
-
-const Title = styled.h1`
-  font-size: 2.5rem;
-  color: #333;
-  text-align: center;
-  margin-bottom: 30px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-`;
-
-const OrderContainer = styled.div`
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 25px;
-  margin-bottom: 30px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const OrderDetails = styled.div`
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 15px;
-
-  h3 {
-    color: #2c3e50;
-    font-size: 1.4rem;
-    margin-bottom: 10px;
-  }
-
-  p {
-    color: #7f8c8d;
-    margin: 5px 0;
-    font-size: 1rem;
-  }
-`;
-
-const OrderItems = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-`;
-
-const OrderItem = styled.div`
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 15px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-    transform: scale(1.02);
-  }
-`;
-
-const OrderItemDetails = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const OrderItemImage = styled.img`
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-right: 15px;
-`;
-
-const OrderItemInfo = styled.div`
-  flex: 1;
-`;
-
-const OrderItemName = styled.p`
-  font-weight: bold;
-  margin: 0 0 5px 0;
-  color: #34495e;
-  font-size: 1.1rem;
-`;
-
-const OrderItemPrice = styled.p`
-  color: #e74c3c;
-  margin: 0 0 5px 0;
-  font-weight: bold;
-  font-size: 1rem;
-`;
-
-const OrderItemQuantity = styled.p`
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 0.9rem;
-`;
-
-const NoOrders = styled.p`
-  text-align: center;
-  font-size: 1.2rem;
-  color: #95a5a6;
-  margin-top: 50px;
-`;
-
-const ReviewButton = styled.button`
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: 15px;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #2980b9;
-  }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background-color: white;
-  padding: 30px;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 400px;
-  position: relative;
-`;
-
-const StarRating = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-`;
-
-const StarIcon = styled(FaStar)`
-  color: ${props => props.active ? '#f1c40f' : '#bdc3c7'};
-  cursor: pointer;
-  font-size: 30px;
-  margin: 0 5px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: scale(1.2);
-  }
-`;
-
-const CommentInput = styled.textarea`
-  width: 100%;
-  height: 120px;
-  margin-bottom: 20px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 1rem;
-  resize: vertical;
-`;
-
-const SubmitButton = styled.button`
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #27ae60;
-  }
-`;
-
-const CommentContainer = styled.div`
-  margin-top: 20px;
-  border-top: 1px solid #eee;
-  padding-top: 15px;
-`;
-
-const Comment = styled.div`
-  margin-bottom: 15px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-`;
-
-const CommentAuthor = styled.span`
-  font-weight: bold;
-  color: #34495e;
-  margin-right: 10px;
-`;
-
-const CommentText = styled.p`
-  margin: 5px 0;
-  color: #7f8c8d;
-`;
-
-const CommentRating = styled.div`
-  display: flex;
-  align-items: center;
-  margin-top: 5px;
-`;
-
-const CloseButton = styled(FaTimes)`
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  cursor: pointer;
-  font-size: 24px;
-  color: #7f8c8d;
-  transition: color 0.3s ease;
-
-  &:hover {
-    color: #34495e;
-  }
-`;
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -252,15 +16,14 @@ const OrdersPage = () => {
   const [reviewedProducts, setReviewedProducts] = useState({});
   const [productComments, setProductComments] = useState({});
   const [currentReview, setCurrentReview] = useState(null);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   const getUserIdFromToken = () => {
     const token = localStorage.getItem('token');
-    console.log('Token from localStorage:', token);
     if (!token) return null;
     
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('Decoded payload:', payload);
       return payload.userId;
     } catch (error) {
       console.error('Error decoding token:', error);
@@ -275,8 +38,6 @@ const OrdersPage = () => {
   const fetchOrders = async () => {
     try {
       const userId = getUserIdFromToken();
-      console.log('UserId from token:', userId);
-  
       if (!userId) {
         console.error('User ID not found in token');
         toast.error('User ID not found');
@@ -284,11 +45,7 @@ const OrdersPage = () => {
       }
   
       const token = localStorage.getItem('token');
-      console.log('Token:', token); // Add this line
-  
       const serverUrl = `${BASE_URL}`;
-  
-      console.log('Sending request to:', `${serverUrl}/api/users/${userId}/orders`); // Add this line
   
       const response = await axios.get(`${serverUrl}/api/users/${userId}/orders`, {
         headers: {
@@ -296,11 +53,8 @@ const OrdersPage = () => {
         },
       });
   
-      console.log('Fetched orders:', response.data);
       setOrders(response.data);
   
-  
-      // Fetch comments for each product in the orders
       const productIds = new Set(response.data.flatMap(order => 
         order.items.map(item => item.productId?._id || item.productId)
       ));
@@ -315,7 +69,6 @@ const OrdersPage = () => {
       setIsLoading(false);
     }
   };
-
 
   const fetchComments = async (productId) => {
     try {
@@ -340,7 +93,6 @@ const OrdersPage = () => {
       toast.error(`Failed to fetch comments for product ${productId}. Please try again.`);
     }
   };
-  
 
   const handleItemClick = (productId) => {
     navigate(`/products/${productId}`);
@@ -377,42 +129,21 @@ const OrdersPage = () => {
 
       let response;
       if (currentReview) {
-        // Update existing review
         response = await axios.put(
           `${serverUrl}/api/comments/${currentReview._id}`,
-          {
-            rating,
-            text: comment,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { rating, text: comment },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
-        // Create new review
         response = await axios.post(
           `${serverUrl}/api/comments`,
-          {
-            productId: currentProductId,
-            rating,
-            text: comment,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          { productId: currentProductId, rating, text: comment },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
 
-      console.log('Review submission/update response:', response.data);
-
       toast.success(currentReview ? 'Review updated successfully' : 'Review submitted successfully');
       handleCloseModal();
-
-      // Refetch comments after submitting or updating a review
       fetchComments(currentProductId);
     } catch (error) {
       console.error('Error submitting/updating review:', error);
@@ -429,108 +160,149 @@ const OrdersPage = () => {
   };
 
   if (isLoading) {
-    return <Container><Title>Loading orders...</Title></Container>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-3xl font-bold text-gray-800">Loading orders...</div>
+      </div>
+    );
   }
 
+  const displayedOrders = showAllOrders ? orders : orders.slice(0, 3);
+
   return (
-    <Container>
+    <div className="min-h-screen bg-gray-100">
       <Toaster />
-      <Title>My Orders</Title>
-      {orders.length === 0 ? (
-        <NoOrders>No orders found</NoOrders>
-      ) : (
-        orders.map((order) => (
-          <OrderContainer key={order._id}>
-            <OrderDetails>
-              <h3>Order ID: {order._id}</h3>
-              <p>Payment Method: {order.paymentMethod}</p>
-              <p>Delivery Status: {order.deliveryStatus}</p>
-              <p>Order Amount: ₹{order.amount.toFixed(2)}</p>
-            </OrderDetails>
-            <OrderItems>
-              {order.items.map((item) => {
-                const productId = item.productId?._id || item.productId;
-                let imagePath = item.image || item.productId?.images?.[0] || '';
+      
+      {/* Hero Section */}
+      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-32">
+        <div className="container mx-auto px-4 z-10 relative">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in-down">My Orders</h1>
+          <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">View and manage your order history</p>
+        </div>
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="wave-bottom"></div>
+      </section>
 
-                if (imagePath && !imagePath.startsWith('http')) {
-                  imagePath = `${BASE_URL}/${imagePath}`;
-                }
+      {/* Orders Section */}
+      <section className="orders-section py-20">
+        <div className="container mx-auto px-4">
+          {orders.length === 0 ? (
+            <div className="text-center text-2xl text-gray-600">No orders found</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {displayedOrders.map((order) => (
+                  <div key={order._id} className="bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 transform hover:-translate-y-2 hover:shadow-2xl">
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold mb-3 text-gray-800">Order ID: {order._id}</h3>
+                      <p className="text-gray-600 mb-2">Payment Method: {order.paymentMethod}</p>
+                      <p className="text-gray-600 mb-2">Delivery Status: {order.deliveryStatus}</p>
+                      <p className="text-gray-600 mb-4">Order Amount: ₹{order.amount.toFixed(2)}</p>
+                      <div className="space-y-4">
+                        {order.items.map((item) => {
+                          const productId = item.productId?._id || item.productId;
+                          let imagePath = item.image || item.productId?.images?.[0] || '';
+                          if (imagePath && !imagePath.startsWith('http')) {
+                            imagePath = `${BASE_URL}/${imagePath}`;
+                          }
 
-                return (
-                  <OrderItem
-                    key={productId}
-                    onClick={() => handleItemClick(productId)}
+                          return (
+                            <div key={productId} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg" onClick={() => handleItemClick(productId)}>
+                              <img src={imagePath} alt={item.name} className="w-20 h-20 object-cover rounded-md" />
+                              <div>
+                                <h4 className="text-lg font-semibold text-gray-800">{item.name}</h4>
+                                <p className="text-gray-600">Price: ₹{item.price.toFixed(2)}</p>
+                                <p className="text-gray-600">Quantity: {item.quantity}</p>
+                              </div>
+                              {order.deliveryStatus.toLowerCase() === 'delivered' && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReviewClick(productId);
+                                  }}
+                                  className="ml-auto bg-indigo-600 text-white py-2 px-4 rounded-full text-sm hover:bg-indigo-700 transition duration-300"
+                                >
+                                  {reviewedProducts[productId] ? 'Update Review' : 'Add Review'}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 px-6 py-4">
+                      <h4 className="text-lg font-semibold text-gray-800 mb-2">Your Reviews</h4>
+                      {productComments[order.items[0].productId?._id || order.items[0].productId] && 
+                       productComments[order.items[0].productId?._id || order.items[0].productId].length > 0 ? (
+                        productComments[order.items[0].productId?._id || order.items[0].productId]
+                          .filter(comment => comment.author._id === getUserIdFromToken())
+                          .map((comment) => (
+                            <div key={comment._id} className="mb-2">
+                              <p className="text-gray-600">{comment.text}</p>
+                              <div className="flex items-center">
+                                {[...Array(comment.rating)].map((_, index) => (
+                                  <FaStar key={index} className="text-yellow-400" />
+                                ))}
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <p className="text-gray-600">No reviews yet.</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {orders.length > 3 && (
+                <div className="text-center mt-12">
+                  <button
+                    onClick={() => setShowAllOrders(!showAllOrders)}
+                    className="bg-indigo-600 text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-700 transition duration-300 inline-flex items-center"
                   >
-                    <OrderItemDetails>
-                      <OrderItemImage src={imagePath} alt={item.name} />
-                      <OrderItemInfo>
-                        <OrderItemName>{item.name}</OrderItemName>
-                        <OrderItemPrice>₹{item.price.toFixed(2)}</OrderItemPrice>
-                        <OrderItemQuantity>Quantity: {item.quantity}</OrderItemQuantity>
-                      </OrderItemInfo>
-                    </OrderItemDetails>
-                    {order.deliveryStatus.toLowerCase() === 'delivered' && (
-                      <ReviewButton onClick={(e) => {
-                        e.stopPropagation();
-                        handleReviewClick(productId);
-                      }}>
-                        {reviewedProducts[productId] ? 'Update Review' : 'Add Review'}
-                      </ReviewButton>
-                    )}
-                    <CommentContainer>
-  <h4>Your Product Comments</h4>
-  {productComments[productId] && productComments[productId].length > 0 ? (
-    productComments[productId]
-      .filter(comment => comment.author._id === getUserIdFromToken())
-      .map((comment) => (
-        <Comment key={comment._id}>
-          <CommentAuthor>{comment.author.name}:</CommentAuthor>
-          <CommentText>{comment.text}</CommentText>
-          <CommentRating>
-            {[...Array(comment.rating)].map((_, index) => (
-              <FaStar key={index} color="#f1c40f" />
-            ))}
-          </CommentRating>
-        </Comment>
-      ))
-  ) : (
-    <p>No comments yet.</p>
-  )}
-</CommentContainer>
+                    {showAllOrders ? "Show Less" : "Show More"}
+                    <FaChevronDown className={`ml-2 transform ${showAllOrders ? "rotate-180" : ""} transition-transform duration-300`} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
 
-                  </OrderItem>
-                );
-              })}
-            </OrderItems>
-          </OrderContainer>
-        ))
-      )}
+      {/* Review Modal */}
       {showReviewModal && (
-        <Modal>
-          <ModalContent>
-            <CloseButton onClick={handleCloseModal} />
-            <h3>{currentReview ? 'Update Your Review' : 'Add Your Review'}</h3>
-            <StarRating>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <button onClick={handleCloseModal} className="float-right text-gray-600 hover:text-gray-800">
+              <FaTimes />
+            </button>
+            <h3 className="text-2xl font-bold mb-4">{currentReview ? 'Update Your Review' : 'Add Your Review'}</h3>
+            <div className="flex mb-4">
               {[1, 2, 3, 4, 5].map((value) => (
-                <StarIcon
+                <FaStar
                   key={value}
-                  active={value <= rating}
+                  className={`cursor-pointer ${value <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
                   onClick={() => handleRatingClick(value)}
                 />
               ))}
-            </StarRating>
-            <CommentInput
+            </div>
+            <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Write your comment (optional)"
+              className="w-full h-32 p-2 border rounded-md mb-4"
             />
-            <SubmitButton onClick={handleSubmitReview}>
+            <button
+              onClick={handleSubmitReview}
+              className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition duration-300"
+            >
               {currentReview ? 'Update Review' : 'Submit Review'}
-            </SubmitButton>
-          </ModalContent>
-        </Modal>
+            </button>
+          </div>
+        </div>
       )}
-    </Container>
+
+    </div>
   );
 };
 

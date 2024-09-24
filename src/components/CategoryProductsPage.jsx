@@ -309,12 +309,14 @@ const CategoryProductsPage = () => {
               const comments = commentsResponse.data;
               const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0) / comments.length || 0;
               const totalRatingsCount = comments.length;
-
-              // Ensure the image URL is complete
-              const images = product.images.map(image => 
-                image.startsWith('http') ? image : `${BASE_URL}/${image}`
-              );
-
+    
+              // Ensure the image URL is complete and handle potential null values
+              const images = product.images && product.images.length > 0
+                ? product.images.map(image => 
+                    image ? (image.startsWith('http') ? image : `${BASE_URL}/${image}`) : null
+                  ).filter(Boolean)
+                : [];
+    
               return {
                 ...product,
                 images,
@@ -323,7 +325,7 @@ const CategoryProductsPage = () => {
               };
             })
           );
-
+    
           setProducts(fetchedProducts);
 
 
