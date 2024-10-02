@@ -1,42 +1,44 @@
 import React, { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { LoadingProvider, useLoading } from './components/LoadingContext';
-import { AppProvider, useAppContext } from './components/AppContext';
-import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
+import { LoadingProvider, useLoading } from './context/LoadingContext';
+import { AppProvider, useAppContext } from './context/AppContext';
+import LoginForm from './pages/LoginForm';
+import RegisterForm from './pages/RegisterForm';
 import ProtectedRoute from './components/ProtectedRoute';
 import Buyer from './components/Buyer';
-import Seller from './components/SellerPage';
-import Admin from './components/AdminPage';
-import HomePage from './components/HomePage';
+import Seller from './pages/SellerPage';
+import Admin from './pages/AdminPage';
+import HomePage from './pages/HomePage';
 import BuyerNavbar from './components/BuyerNavbar';
 import AdminNavbar from './components/AdminNavbar';
 import SellerNavbar from './components/SellerNavbar';
 import BeforeLoginNavbar from './components/BeforeLoginNavbar';
-import AboutPage from './components/AboutPage';
-import ContactPage from './components/ContactPage';
-import Cart from './components/Cart';
-import CategoryProductsPage from './components/CategoryProductsPage';
-import AllCategoriesPage from './components/AllCategoriesPage';
-import SellerManageProducts from './components/SellerManageProducts';
-import ManageCategories from './components/SellerManageCategories';
-import ProductView from './components/ProductView';
-import ProductDetailsPage from './components/ProductDetailsPage';
-import BuyerProfile from './components/BuyerProfile';
-import SearchResultsPage from './components/SearchResultsPage';
-import UserDetailsPage from './components/UserDetailsPage';
-import PaymentGatewayPage from './components/PaymentGatewayPage';
-import OrderSummaryPage from './components/OrderSummaryPage';
-import OrderConfirmation from './components/OrderConfirmation';
-import OrdersPage from './components/OrderPage';
-import AdminUserProfileActivity from './components/AdminUserProfileActivity';
-import AdminProfile from './components/AdminProfile';
-import SellerProfile from './components/SellerProfile';
-import ForgotPassword from './components/ForgotPassword';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import Cart from './pages/Cart';
+import CategoryProductsPage from './pages/CategoryProductsPage'; 
+import AllCategoriesPage from './pages/AllCategoriesPage';
+import SellerManageProducts from './pages/SellerManageProducts';
+import ManageCategories from './pages/SellerManageCategories';
+import ProductView from './pages/ProductView';
+import ProductDetailsPage from './pages/ProductDetailsPage';
+import BuyerProfile from './pages/BuyerProfile';
+import SearchResultsPage from './pages/SearchResultsPage';
+import UserDetailsPage from './pages/UserDetailsPage';
+import PaymentGatewayPage from './pages/PaymentGatewayPage';
+import OrderSummaryPage from './pages/OrderSummaryPage';
+import OrderConfirmation from './pages/OrderConfirmation';
+import OrdersPage from './pages/OrderPage';
+import AdminUserProfileActivity from './pages/AdminUserProfileActivity';
+import AdminProfile from './pages/AdminProfile';
+import SellerProfile from './pages/SellerProfile';
+import ForgotPassword from './pages/ForgotPassword';
 import Preloader from './components/Preloader';
 
 const App = () => {
   return (
+    <QueryClientProvider client={queryClient}>
     <AppProvider>
       <LoadingProvider>
         <Router>
@@ -44,8 +46,11 @@ const App = () => {
         </Router>
       </LoadingProvider>
     </AppProvider>
+    </QueryClientProvider>
+
   );
 };
+const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isLoading } = useLoading();
@@ -56,7 +61,7 @@ const AppContent = () => {
   }
 
   const renderNavbar = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated) { 
       return <BeforeLoginNavbar />;
     }
 
@@ -94,6 +99,7 @@ const AppContent = () => {
         <Route path="/OrderSummaryPage" element={<OrderSummaryPage />} />
         <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        
 
         <Route
           path="/buyer/*"

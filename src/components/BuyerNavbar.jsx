@@ -6,7 +6,7 @@ import { Toaster, toast } from "react-hot-toast";
 import styled from 'styled-components';
 
 import { BASE_URL } from "../api";
-import { useAppContext } from "./AppContext";
+import { useAppContext } from "../context/AppContext";
 
 const AnimatedDropdown = styled.ul`
   background: rgba(255, 255, 255, 0.7);

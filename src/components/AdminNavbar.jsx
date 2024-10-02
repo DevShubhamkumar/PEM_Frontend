@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaUserCircle, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAppContext } from './AppContext';
+import { useAppContext } from '../context/AppContext';
 import styled, { keyframes } from 'styled-components';
 
 export const BASE_URL = 'https://pem-backend.onrender.com';
