@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {  FaSignOutAlt ,  } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaSignOutAlt } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styled, { keyframes, css } from 'styled-components';
-import { BASE_URL } from '../api';
+
+export const BASE_URL = 'https://pem-backend.onrender.com';
 
 const fadeInAnimation = keyframes`
   from { opacity: 0; transform: translateY(-10px); }
@@ -83,6 +84,7 @@ const ProfilePic = styled.img`
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  cursor: pointer;
 `;
 
 const SellerNavbar = ({ handleLogout }) => {
@@ -142,6 +144,10 @@ const SellerNavbar = ({ handleLogout }) => {
     }
   }, [isMobile]);
 
+  const handleProfileClick = () => {
+    navigate('/seller');
+  };
+
   return (
     <nav className={`bg-white shadow-md sticky top-0 z-50`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -175,12 +181,12 @@ const SellerNavbar = ({ handleLogout }) => {
             <button onClick={handleLogout} className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
               <FaSignOutAlt className="mr-2" /> Logout
             </button>
-           
-            {profilePicUrl && <ProfilePic src={profilePicUrl} alt="Profile" />}
+            {profilePicUrl && <ProfilePic src={profilePicUrl} alt="Profile" onClick={handleProfileClick} />}
           </div>
 
           {/* Mobile menu button */}
-          <div className="flex md:hidden">
+          <div className="flex md:hidden items-center space-x-4">
+            {profilePicUrl && <ProfilePic src={profilePicUrl} alt="Profile" onClick={handleProfileClick} />}
             <HamburgerButton
               onClick={toggleMenu}
               isOpen={isOpen}
@@ -244,14 +250,6 @@ const SellerNavbar = ({ handleLogout }) => {
             <FaSignOutAlt className="inline mr-2" /> Logout
           </button>
         </MobileMenuItem>
-        <MobileMenuItem delay={0.6}>
-        
-        </MobileMenuItem>
-        {profilePicUrl && (
-          <MobileMenuItem delay={0.7} className="flex justify-center">
-            <ProfilePic src={profilePicUrl} alt="Profile" />
-          </MobileMenuItem>
-        )}
       </MobileMenu>
     </nav>
   );

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaUserCircle, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useAppContext } from '../context/AppContext';
 import styled, { keyframes } from 'styled-components';
 
@@ -84,6 +83,15 @@ const HamburgerButton = styled.button`
     }
   }
 `;
+
+const ProfilePic = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+`;
+
 const AdminNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [adminData, setAdminData] = useState(null);
@@ -134,6 +142,10 @@ const AdminNavbar = ({ handleLogout }) => {
     }
   }, [isMobile]);
 
+  const handleProfileClick = () => {
+    navigate('/admin/dashboard');
+  };
+
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -166,12 +178,17 @@ const AdminNavbar = ({ handleLogout }) => {
             </NavLink>
             <div className="relative">
               {profilePicUrl ? (
-                <img src={profilePicUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/32';
-                }} />
+                <ProfilePic 
+                  src={profilePicUrl} 
+                  alt="Profile" 
+                  onClick={handleProfileClick}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/40';
+                  }} 
+                />
               ) : (
-                <FaUserCircle className="w-8 h-8 text-gray-500" />
+                <FaUserCircle className="w-10 h-10 text-gray-500 cursor-pointer" onClick={handleProfileClick} />
               )}
             </div>
             <button onClick={handleLogout} className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
@@ -180,7 +197,20 @@ const AdminNavbar = ({ handleLogout }) => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="flex md:hidden">
+          <div className="flex md:hidden items-center space-x-4">
+            {profilePicUrl ? (
+              <ProfilePic 
+                src={profilePicUrl} 
+                alt="Profile" 
+                onClick={handleProfileClick}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/40';
+                }} 
+              />
+            ) : (
+              <FaUserCircle className="w-10 h-10 text-gray-500 cursor-pointer" onClick={handleProfileClick} />
+            )}
             <HamburgerButton
               onClick={toggleMenu}
               isOpen={isOpen}

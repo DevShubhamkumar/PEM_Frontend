@@ -100,7 +100,28 @@ const HamburgerButton = styled.button`
   }
 `;
 
-const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
+const MobileHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+`;
+
+const ProfilePicture = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+`;
+
+export default function BuyerNavbar({ isAuthenticated, buyerData, handleLogout }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -268,12 +289,18 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
   
   const memoizedCategories = useMemo(() => categories, [categories]);
 
+  const handleProfileClick = useCallback(() => {
+    navigate('/buyer/profile');
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  }, [navigate, isMobile]);
+
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <Toaster />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex flex-col items-start">
               <span className="text-2xl md:text-3xl font-black tracking-wider font-arial" style={{ color: "#33DDFF", fontWeight: "900" }}>
@@ -285,7 +312,6 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
             </Link>
           </div>
 
-          {/* Search bar for desktop */}
           <div className="hidden md:block flex-grow max-w-xl mx-4">
             <form onSubmit={handleSearch} className="relative">
               <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400 shadow-md">
@@ -323,7 +349,6 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
             </form>
           </div>
 
-          {/* Navigation links for desktop */}
           <div className="hidden md:flex items-center space-x-6">
             <div 
               className="relative group"
@@ -374,8 +399,8 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
             </button>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
+          <div className="flex md:hidden items-center space-x-4">
+            <ProfilePicture src={memoizedProfilePicture} alt="Profile" onClick={handleProfileClick} />
             <HamburgerButton
               onClick={toggleMenu}
               isOpen={isOpen}
@@ -389,7 +414,6 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       <MobileMenu isOpen={isOpen}>
         <form onSubmit={handleSearch} className="relative mb-4">
           <div className="flex items-center bg-gray-100 rounded-full overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400 shadow-md">
@@ -426,6 +450,14 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
         </form>
         
         <NavLink 
+          to="/buyer/profile" 
+          className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center transition-colors duration-200"
+          onClick={handleNavLinkClick}
+        >
+          {buyerData.name}
+        </NavLink>
+        
+        <NavLink 
           to="/AllCategoriesPage" 
           className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide transition-colors duration-200"
           onClick={handleNavLinkClick}
@@ -454,18 +486,6 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
           <FaShoppingCart className="mr-2 text-[#33DDFF]" /> Cart
         </NavLink>
         <NavLink 
-          to="/buyer/profile" 
-          className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide flex items-center transition-colors duration-200"
-          onClick={handleNavLinkClick}
-        >
-          <img
-            src={memoizedProfilePicture}
-            alt="Profile"
-            className="w-8 h-8 rounded-full mr-2"
-          />
-          {buyerData.name}
-        </NavLink>
-        <NavLink 
           to="/buyer/orders" 
           className="text-gray-800 hover:text-[#33DDFF] block px-3 py-2 rounded-md text-base font-semibold tracking-wide transition-colors duration-200"
           onClick={handleNavLinkClick}
@@ -484,6 +504,4 @@ const BuyerNavbar = ({ isAuthenticated, buyerData, handleLogout }) => {
       </MobileMenu>
     </nav>
   );
-};
-
-export default BuyerNavbar;
+}

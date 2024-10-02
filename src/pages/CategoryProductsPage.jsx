@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FaSearch, FaStar, FaChevronDown, FaChevronUp, FaFilter, FaShoppingCart, FaTruck, FaShieldAlt } from 'react-icons/fa';
+import { FaSearch, FaStar, FaChevronDown, FaChevronUp, FaFilter, FaTimes, FaShoppingCart, FaTruck, FaShieldAlt } from 'react-icons/fa';
 import Footer from '../components/Footer';
 import { useAppContext } from '../context/AppContext';
+import debounce from 'lodash/debounce';
+
 // New ProductSkeleton component
 const ProductSkeleton = () => (
   <div className="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
@@ -43,6 +45,7 @@ export default function CategoryProductsPage() {
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [selectedDiscounts, setSelectedDiscounts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [sortBy, setSortBy] = useState('featured');
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(5);
@@ -53,9 +56,9 @@ export default function CategoryProductsPage() {
     ratings: true,
     discounts: true,
   });
-
   const [isLoading, setIsLoading] = useState(true);
-  
+  const searchInputRef = useRef(null);
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -77,7 +80,7 @@ export default function CategoryProductsPage() {
     loadData();
   }, [categoryId, fetchCategoryProducts, fetchCategories]);
 
-  useEffect(() => {
+  const filterProducts = useCallback(() => {
     const filtered = products.filter((product) => {
       const matchesPrice = product.price >= priceRange.min && product.price <= priceRange.max;
       const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand.name);
@@ -96,6 +99,8 @@ export default function CategoryProductsPage() {
           return b.price - a.price;
         case 'rating':
           return b.totalRating - a.totalRating;
+        case 'latest':
+          return new Date(b.createdAt) - new Date(a.createdAt);
         default:
           return 0;
       }
@@ -104,6 +109,51 @@ export default function CategoryProductsPage() {
     setFilteredProducts(sorted);
     setCurrentPage(1);
   }, [products, priceRange, selectedBrands, selectedRatings, selectedDiscounts, searchTerm, sortBy]);
+
+  useEffect(() => {
+    filterProducts();
+  }, [filterProducts]);
+
+  const debouncedSearch = useCallback(
+    debounce((term) => {
+      const suggestions = products
+        .filter(product => 
+          product.name.toLowerCase().includes(term.toLowerCase()) ||
+          product.description.toLowerCase().includes(term.toLowerCase())
+        )
+        .slice(0, 5)
+        .map(product => product.name);
+      setSearchSuggestions(suggestions);
+    }, 300),
+    [products]
+  );
+
+  useEffect(() => {
+    if (searchTerm.length > 2) {
+      debouncedSearch(searchTerm);
+    } else {
+      setSearchSuggestions([]);
+    }
+  }, [searchTerm, debouncedSearch]);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    filterProducts();
+    setSearchSuggestions([]);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchTerm(suggestion);
+    filterProducts();
+    setSearchSuggestions([]);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -145,6 +195,15 @@ export default function CategoryProductsPage() {
     [products]
   );
 
+  const clearAllFilters = () => {
+    setSelectedBrands([]);
+    setSelectedRatings([]);
+    setSelectedDiscounts([]);
+    setPriceRange({ min: 0, max: 2000000 });
+    setSearchTerm('');
+    setSortBy('featured');
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -156,14 +215,32 @@ export default function CategoryProductsPage() {
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 tracking-tight">{categoryName}</h1>
           <p className="text-xl mb-8 max-w-2xl">Discover amazing products in our curated {categoryName} collection</p>
           <div className="relative w-full max-w-xl mx-auto">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search products..."
-              className="w-full pl-12 pr-4 py-4 rounded-full text-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
+            <form onSubmit={handleSearchSubmit}>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search products..."
+                className="w-full pl-12 pr-4 py-4 rounded-full text-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                ref={searchInputRef}
+              />
+              <button type="submit" className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <FaSearch className="text-gray-400 text-xl" />
+              </button>
+            </form>
+            {searchSuggestions.length > 0 && (
+              <ul className="absolute z-10 bg-white w-full mt-2 text-black rounded-lg shadow-lg">
+                {searchSuggestions.map((suggestion, index) => (
+                  <li 
+                    key={index} 
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </section>
@@ -172,7 +249,15 @@ export default function CategoryProductsPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters */}
           <div className={`lg:w-1/4 bg-white p-6 rounded-lg shadow-lg ${isFilterOpen ? 'block' : 'hidden lg:block'}`}>
-            <h2 className="text-3xl font-bold mb-6 text-gray-800">Filters</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-800">Filters</h2>
+              <button
+                onClick={handleFilterToggle}
+                className="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                <FaTimes className="text-2xl" />
+              </button>
+            </div>
             
             {/* Price Range */}
             <div className="mb-8">
@@ -207,8 +292,8 @@ export default function CategoryProductsPage() {
                   <input
                     type="range"
                     min="0"
-                    max="200000"
-                    step="10"
+                    max="2000000"
+                    step="10000"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
                     className="w-full"
@@ -298,17 +383,11 @@ export default function CategoryProductsPage() {
                       <span className="text-gray-700">{discount}% or more</span>
                     </label>
                   ))}
-                </div>
-              )}
+                </div>)}
             </div>
 
             <button
-              onClick={() => {
-                setSelectedBrands([]);
-                setSelectedRatings([]);
-                setSelectedDiscounts([]);
-                setPriceRange({ min: 0, max: 200000 });
-              }}
+              onClick={clearAllFilters}
               className="w-full bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition duration-300"
             >
               Clear All Filters
@@ -327,6 +406,7 @@ export default function CategoryProductsPage() {
                 <option value="price-low-high">Price: Low to High</option>
                 <option value="price-high-low">Price: High to Low</option>
                 <option value="rating">Highest Rated</option>
+                <option value="latest">Latest Products</option>
               </select>
               <button
                 onClick={handleFilterToggle}
@@ -345,47 +425,52 @@ export default function CategoryProductsPage() {
                 ))
               ) : (
                 currentProducts.map((product) => (
-                <div key={product._id} className="bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 hover:shadow-xl">
-                  <div className="md:flex">
-                    <div className="md:w-1/3 relative">
-                      <img
-                        src={product.images[0] || '/placeholder.svg'}
-                        alt={product.name}
-                        className="w-full h-64 object-cover"
-                      />
-                      {product.discount > 0 && (
-                        <div className="absolute top-0 left-0 bg-red-500 text-white px-2 py-1 m-2 rounded">
-                          {product.discount}% OFF
-                        </div>
-                      )}
-                    </div>
-                    <div className="md:w-2/3 p-6">
-                      <h3 className="text-2xl font-bold mb-2 text-gray-800">{product.name}</h3>
-                      <p className="text-gray-600 mb-4">{product.description}</p>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-3xl font-bold text-blue-600">₹{product.price.toFixed(2)}</span>
-                        <div className="flex items-center bg-yellow-100 px-2 py-1 rounded">
-                          <FaStar className="text-yellow-400 mr-1" />
-                          <span className="font-semibold">{product.totalRating.toFixed(1)}</span>
-                          <span className="text-gray-500 ml-1">({product.totalRatingsCount} reviews)</span>
-                        </div>
+                  <div key={product._id} className="bg-white rounded-lg shadow-lg overflow-hidden transition duration-300 hover:shadow-xl">
+                    <div className="md:flex">
+                      <div className="md:w-1/3 relative">
+                        <img
+                          src={product.images[0] || '/placeholder.svg'}
+                          alt={product.name}
+                          className="w-full h-64 object-cover"
+                        />
+                        {product.discount > 0 && (
+                          <div className="absolute top-0 left-0 bg-red-500 text-white px-2 py-1 m-2 rounded">
+                            {product.discount}% OFF
+                          </div>
+                        )}
                       </div>
-                      <p className="text-gray-500 mb-4">Brand: <span className="font-semibold">{product.brand.name}</span></p>
-                      <div className="flex space-x-4">
-                        <Link 
-                          to={`/products/${product._id}`} 
-                          className="bg-blue-500 text-white px-6 py-3 rounded-full inline-block hover:bg-blue-600 transition duration-300"
-                        >
-                          View Details
-                        </Link>
-                      
+                      <div className="md:w-2/3 p-6">
+                        <h3 className="text-2xl font-bold mb-2 text-gray-800">{product.name}</h3>
+                        <p className="text-gray-600 mb-4">{product.description}</p>
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-3xl font-bold text-blue-600">₹{product.price.toFixed(2)}</span>
+                          <div className="flex items-center bg-yellow-100 px-2 py-1 rounded">
+                            <FaStar className="text-yellow-400 mr-1" />
+                            <span className="font-semibold">{product.totalRating.toFixed(1)}</span>
+                            <span className="text-gray-500 ml-1">({product.totalRatingsCount} reviews)</span>
+                          </div>
+                        </div>
+                        <p className="text-gray-500 mb-4">Brand: <span className="font-semibold">{product.brand.name}</span></p>
+                        <div className="flex space-x-4">
+                          <Link 
+                            to={`/products/${product._id}`} 
+                            className="bg-blue-500 text-white px-6 py-3 rounded-full inline-block hover:bg-blue-600 transition duration-300"
+                          >
+                            View Details
+                          </Link>
+                          <button
+                            onClick={() => addToCart(product)}
+                            className="bg-green-500 text-white px-6 py-3 rounded-full inline-block hover:bg-green-600 transition duration-300"
+                          >
+                            Add to Cart
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-             ))
-            )}
-          </div>
+                ))
+              )}
+            </div>
 
             {/* Pagination */}
             <div className="mt-12 flex justify-center">
