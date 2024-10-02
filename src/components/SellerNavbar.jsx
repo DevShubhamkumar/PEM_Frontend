@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaUserCircle, FaSignOutAlt, FaMoon, FaSun, FaTimes, FaSearch } from 'react-icons/fa';
+import {  FaSignOutAlt ,  } from 'react-icons/fa';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styled, { keyframes, css } from 'styled-components';
@@ -87,7 +87,6 @@ const ProfilePic = styled.img`
 
 const SellerNavbar = ({ handleLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [profilePicUrl, setProfilePicUrl] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
@@ -137,10 +136,6 @@ const SellerNavbar = ({ handleLogout }) => {
     setIsOpen(prevState => !prevState);
   }, []);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   const handleNavLinkClick = useCallback(() => {
     if (isMobile) {
       setIsOpen(false);
@@ -148,7 +143,7 @@ const SellerNavbar = ({ handleLogout }) => {
   }, [isMobile]);
 
   return (
-    <nav className={`bg-white shadow-md sticky top-0 z-50 ${isDarkMode ? 'dark' : ''}`}>
+    <nav className={`bg-white shadow-md sticky top-0 z-50`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -180,9 +175,7 @@ const SellerNavbar = ({ handleLogout }) => {
             <button onClick={handleLogout} className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200 flex items-center">
               <FaSignOutAlt className="mr-2" /> Logout
             </button>
-            <button onClick={toggleDarkMode} className="text-gray-800 hover:text-[#33DDFF] px-3 py-2 rounded-md text-sm font-semibold tracking-wide transition-colors duration-200">
-              {isDarkMode ? <FaSun /> : <FaMoon />}
-            </button>
+           
             {profilePicUrl && <ProfilePic src={profilePicUrl} alt="Profile" />}
           </div>
 
@@ -252,16 +245,7 @@ const SellerNavbar = ({ handleLogout }) => {
           </button>
         </MobileMenuItem>
         <MobileMenuItem delay={0.6}>
-          <button 
-            onClick={() => {
-              toggleDarkMode();
-              handleNavLinkClick();
-            }} 
-            className="text-gray-800 hover:text-[#33DDFF] block w-full text-left px-3 py-2 rounded-md text-base font-semibold tracking-wide transition-colors duration-200"
-          >
-            {isDarkMode ? <FaSun className="inline mr-2" /> : <FaMoon className="inline mr-2" />} 
-            {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
+        
         </MobileMenuItem>
         {profilePicUrl && (
           <MobileMenuItem delay={0.7} className="flex justify-center">
