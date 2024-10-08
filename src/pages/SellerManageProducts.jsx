@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaChevronDown, FaTimes, FaSearch } from 'react-icons/fa';
 import { BASE_URL } from '../api';
 
 const SellerManageProducts = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState({ category: '', itemType: '', brand: '' });
   const [editingProduct, setEditingProduct] = useState(null);
@@ -274,7 +275,6 @@ const SellerManageProducts = () => {
   ));
 
   const displayedProducts = showAllProducts ? filteredProducts : filteredProducts.slice(0, 8);
-
   return (
     <div className="bg-gray-100 min-h-screen">
       {/* Hero Section */}
@@ -282,9 +282,17 @@ const SellerManageProducts = () => {
         <div className="container mx-auto px-4 z-10 relative">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">Manage Your Products</h1>
           <p className="text-xl mb-8">Add, edit, and organize your product listings with ease.</p>
-          <Link to="/seller/add-product" className="bg-white text-indigo-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-100 transition duration-300 inline-flex items-center">
-            <FaPlus className="mr-2" /> Add New Product
-          </Link>
+          <div className="flex space-x-4">
+            <Link to="/seller/add-product" className="bg-white text-indigo-600 py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-100 transition duration-300 inline-flex items-center">
+              <FaPlus className="mr-2" /> Add New Product
+            </Link>
+            <button
+              onClick={() => navigate('/seller/manage-categories')}
+              className="bg-indigo-500 text-white py-3 px-8 rounded-full font-semibold text-lg hover:bg-indigo-400 transition duration-300 inline-flex items-center"
+            >
+              Manage Categories
+            </button>
+          </div>
         </div>
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="wave-bottom"></div>

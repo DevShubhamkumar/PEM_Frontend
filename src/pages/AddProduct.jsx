@@ -224,7 +224,8 @@ const AddProduct = () => {
       <Toaster position="top-right" />
       
       {/* Hero Section */}
-      <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+      <section className="hero relative bg-gradient-to-r rom-blue-600 to-purple-700 text-white py-20">
+
         <div className="container mx-auto px-4 z-10 relative">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 animate-fade-in-down">Product Management</h1>
           <p className="text-xl md:text-2xl mb-8 animate-fade-in-up">Add and manage your products with ease</p>

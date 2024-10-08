@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaStar, FaTimes, FaChevronDown } from 'react-icons/fa';
@@ -6,17 +7,14 @@ import toast, { Toaster } from 'react-hot-toast';
 import { BASE_URL } from '../api';
 
 const OrdersPage = () => {
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [currentProductId, setCurrentProductId] = useState(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-  const [reviewedProducts, setReviewedProducts] = useState({});
-  const [productComments, setProductComments] = useState({});
   const [currentReview, setCurrentReview] = useState(null);
   const [showAllOrders, setShowAllOrders] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const getUserIdFromToken = () => {
     const token = localStorage.getItem('token');
@@ -31,68 +29,82 @@ const OrdersPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
   const fetchOrders = async () => {
-    try {
-      const userId = getUserIdFromToken();
-      if (!userId) {
-        console.error('User ID not found in token');
-        toast.error('User ID not found');
-        return;
-      }
-  
-      const token = localStorage.getItem('token');
-      const serverUrl = `${BASE_URL}`;
-  
-      const response = await axios.get(`${serverUrl}/api/users/${userId}/orders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      setOrders(response.data);
-  
-      const productIds = new Set(response.data.flatMap(order => 
-        order.items.map(item => item.productId?._id || item.productId)
-      ));
-  
-      for (const productId of productIds) {
-        fetchComments(productId);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error('Failed to fetch orders. Please try again.');
-    } finally {
-      setIsLoading(false);
+    const userId = getUserIdFromToken();
+    if (!userId) {
+      throw new Error('User ID not found');
     }
+
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${BASE_URL}/api/users/${userId}/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   };
 
   const fetchComments = async (productId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const serverUrl = `${BASE_URL}`;
-  
-      const response = await axios.get(`${serverUrl}/api/products/${productId}/comments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      setProductComments(prev => ({ ...prev, [productId]: response.data }));
-  
-      const userId = getUserIdFromToken();
-      const userReview = response.data.find(comment => comment.author._id === userId);
-      if (userReview) {
-        setReviewedProducts(prev => ({ ...prev, [productId]: userReview }));
-      }
-    } catch (error) {
-      console.error(`Error fetching comments for product ${productId}:`, error);
-      toast.error(`Failed to fetch comments for product ${productId}. Please try again.`);
-    }
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${BASE_URL}/api/products/${productId}/comments`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
   };
+
+  const { data: orders, isLoading, error } = useQuery('orders', fetchOrders, {
+    onError: (error) => {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to fetch orders. Please try again.');
+    },
+  });
+
+  const { data: productComments } = useQuery(
+    ['productComments', orders],
+    async () => {
+      if (!orders) return {};
+      const productIds = new Set(orders.flatMap(order => 
+        order.items.map(item => item.productId?._id || item.productId)
+      ));
+      const comments = {};
+      for (const productId of productIds) {
+        comments[productId] = await fetchComments(productId);
+      }
+      return comments;
+    },
+    {
+      enabled: !!orders,
+      onError: (error) => {
+        console.error('Error fetching comments:', error);
+        toast.error('Failed to fetch comments. Please try again.');
+      },
+    }
+  );
+
+  const reviewMutation = useMutation(
+    async ({ productId, rating, text, reviewId }) => {
+      const token = localStorage.getItem('token');
+      const url = reviewId
+        ? `${BASE_URL}/api/comments/${reviewId}`
+        : `${BASE_URL}/api/comments`;
+      const method = reviewId ? 'put' : 'post';
+      const data = reviewId ? { rating, text } : { productId, rating, text };
+      
+      const response = await axios[method](url, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.data;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('productComments');
+        toast.success(currentReview ? 'Review updated successfully' : 'Review submitted successfully');
+        handleCloseModal();
+      },
+      onError: (error) => {
+        console.error('Error submitting/updating review:', error);
+        toast.error(`Failed to ${currentReview ? 'update' : 'submit'} review: ${error.response?.data?.message || error.message}`);
+      },
+    }
+  );
 
   const handleItemClick = (productId) => {
     navigate(`/products/${productId}`);
@@ -100,7 +112,7 @@ const OrdersPage = () => {
 
   const handleReviewClick = (productId) => {
     setCurrentProductId(productId);
-    const existingReview = reviewedProducts[productId];
+    const existingReview = productComments[productId]?.find(comment => comment.author._id === getUserIdFromToken());
     if (existingReview) {
       setCurrentReview(existingReview);
       setRating(existingReview.rating);
@@ -117,38 +129,18 @@ const OrdersPage = () => {
     setRating(value);
   };
 
-  const handleSubmitReview = async () => {
+  const handleSubmitReview = () => {
     if (rating === 0) {
       toast.error('Please select a rating before submitting.');
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const serverUrl = `${BASE_URL}`;
-
-      let response;
-      if (currentReview) {
-        response = await axios.put(
-          `${serverUrl}/api/comments/${currentReview._id}`,
-          { rating, text: comment },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        response = await axios.post(
-          `${serverUrl}/api/comments`,
-          { productId: currentProductId, rating, text: comment },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-
-      toast.success(currentReview ? 'Review updated successfully' : 'Review submitted successfully');
-      handleCloseModal();
-      fetchComments(currentProductId);
-    } catch (error) {
-      console.error('Error submitting/updating review:', error);
-      toast.error(`Failed to ${currentReview ? 'update' : 'submit'} review: ${error.response?.data?.message || error.message}`);
-    }
+    reviewMutation.mutate({
+      productId: currentProductId,
+      rating,
+      text: comment,
+      reviewId: currentReview?._id,
+    });
   };
 
   const handleCloseModal = () => {
@@ -163,6 +155,14 @@ const OrdersPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-3xl font-bold text-gray-800">Loading orders...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-3xl font-bold text-red-800">Error loading orders. Please try again.</div>
       </div>
     );
   }
@@ -183,10 +183,11 @@ const OrdersPage = () => {
         <div className="wave-bottom"></div>
       </section>
 
+
       {/* Orders Section */}
       <section className="orders-section py-20">
         <div className="container mx-auto px-4">
-          {orders.length === 0 ? (
+          {!orders || orders.length === 0 ? (
             <div className="text-center text-2xl text-gray-600">No orders found</div>
           ) : (
             <>
@@ -222,7 +223,7 @@ const OrdersPage = () => {
                                   }}
                                   className="ml-auto bg-indigo-600 text-white py-2 px-4 rounded-full text-sm hover:bg-indigo-700 transition duration-300"
                                 >
-                                  {reviewedProducts[productId] ? 'Update Review' : 'Add Review'}
+                                  {productComments && productComments[productId]?.some(comment => comment.author._id === getUserIdFromToken()) ? 'Update Review' : 'Add Review'}
                                 </button>
                               )}
                             </div>
@@ -232,8 +233,7 @@ const OrdersPage = () => {
                     </div>
                     <div className="bg-gray-50 px-6 py-4">
                       <h4 className="text-lg font-semibold text-gray-800 mb-2">Your Reviews</h4>
-                      {productComments[order.items[0].productId?._id || order.items[0].productId] && 
-                       productComments[order.items[0].productId?._id || order.items[0].productId].length > 0 ? (
+                      {productComments && productComments[order.items[0].productId?._id || order.items[0].productId] ? (
                         productComments[order.items[0].productId?._id || order.items[0].productId]
                           .filter(comment => comment.author._id === getUserIdFromToken())
                           .map((comment) => (
@@ -253,7 +253,7 @@ const OrdersPage = () => {
                   </div>
                 ))}
               </div>
-              {orders.length > 3 && (
+              {orders && orders.length > 3 && (
                 <div className="text-center mt-12">
                   <button
                     onClick={() => setShowAllOrders(!showAllOrders)}
@@ -301,7 +301,6 @@ const OrdersPage = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

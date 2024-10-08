@@ -95,7 +95,7 @@ const AllCategoriesPage = () => {
   }
 
   return (
-    <div className="all-categories-page w-full mt-20">
+    <div className="all-categories-page w-full">
       {/* Hero Section */}
       <section className="hero relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24">
         <div className="container mx-auto px-4 z-10 relative">

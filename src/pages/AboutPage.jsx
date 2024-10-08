@@ -55,14 +55,14 @@ const Feature = ({ icon: Icon, title, description }) => (
     transition={{ duration: 0.2 }}
   >
     <Icon className="text-4xl mb-4 text-blue-600" size={48} />
-    <h3 className="text-xl font-semibold mb-2">{title}</h3>
+    <h3 className="text-xl font-semibold mb-2">{title}</h3> 
     <p className="text-gray-600">{description}</p>
   </motion.div>
 );
 
 const AboutPage = () => {
   return (
-    <div className="about-page mt-20">
+    <div className="about-page ">
       <Section backgroundColor="bg-gradient-to-r from-blue-600 to-purple-700 text-white" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="relative z-10">
