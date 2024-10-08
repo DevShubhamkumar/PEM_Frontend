@@ -210,7 +210,7 @@ export default function CategoryProductsPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20">
+      <section className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white py-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 tracking-tight">{categoryName}</h1>
           <p className="text-xl mb-8 max-w-2xl">Discover amazing products in our curated {categoryName} collection</p>

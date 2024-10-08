@@ -1,104 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import { toast, Toaster } from 'react-hot-toast';
-import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { BASE_URL } from '../api';
 
 const SellerManageCategories = () => {
-  const [categories, setCategories] = useState([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatingCategory, setUpdatingCategory] = useState(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryImage, setCategoryImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const queryClient = useQueryClient();
 
-  const fetchCategories = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${BASE_URL}/api/seller/data`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setCategories(response.data.categories);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      setError('Failed to fetch categories. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch categories
+  const { data: categories, isLoading, error } = useQuery('categories', fetchCategories);
+
+  // Update category mutation
+  const updateCategoryMutation = useMutation(updateCategory, {
+    onSuccess: (data) => {
+      queryClient.setQueryData('categories', (oldData) =>
+        oldData.map((category) => (category._id === data._id ? data : category))
+      );
+      toast.success('Category updated successfully');
+      handleCancelUpdate();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'An error occurred while updating the category');
+    },
+  });
+
+  async function fetchCategories() {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No authentication token found. Please log in again.');
+
+    const response = await axios.get(`${BASE_URL}/api/seller/data`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data.categories;
+  }
+
+  async function updateCategory({ id, formData }) {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No authentication token found. Please log in again.');
+
+    const response = await axios.put(`${BASE_URL}/api/categories/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  }
 
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccessMessage('');
-  
     const formData = new FormData();
     formData.append('name', categoryName.trim());
     if (categoryImage) {
       formData.append('image', categoryImage, categoryImage.name);
-      console.log('Appending image to FormData:', categoryImage.name);
-    } else {
-      console.log('No image selected');
     }
-  
-    // Log the contents of the FormData
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
-  
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-  
-      console.log('Sending update request for category:', updatingCategory._id);
-      const response = await axios.put(
-        `${BASE_URL}/api/categories/${updatingCategory._id}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-  
-      console.log('Server response:', response.data);
-  
-      if (response.data && response.data._id) {
-        setCategories(prevCategories => 
-          prevCategories.map(category =>
-            category._id === response.data._id ? response.data : category
-          )
-        );
-  
-        setSuccessMessage('Category updated successfully');
-        setIsUpdating(false);
-        setUpdatingCategory(null);
-        setCategoryName('');
-        setCategoryImage(null);
-        setImagePreview(null);
-      } else {
-        throw new Error('Invalid server response');
-      }
-    } catch (error) {
-      console.error('Error updating category:', error);
-      setError(error.response?.data?.message || error.message || 'An error occurred while updating the category');
-    } finally {
-      setLoading(false);
-    }
+    updateCategoryMutation.mutate({ id: updatingCategory._id, formData });
   };
 
   const handleUpdateCategory = (category) => {
@@ -123,11 +86,9 @@ const SellerManageCategories = () => {
   const handleCategoryImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      console.log('New file selected:', file.name);
       setCategoryImage(file);
       setImagePreview(URL.createObjectURL(file));
     } else {
-      console.log('No file selected');
       setCategoryImage(null);
       setImagePreview(null);
     }
@@ -136,15 +97,17 @@ const SellerManageCategories = () => {
   const renderCategoryImage = (imageUrl) => {
     if (imageUrl && imageUrl.startsWith('http')) {
       const cacheBuster = Date.now();
-      return <img 
-        src={`${imageUrl}?v=${cacheBuster}`} 
-        alt="Category" 
-        className="w-12 h-12 rounded-full object-cover" 
-        onError={(e) => {
-          console.error('Error loading image:', imageUrl);
-          e.target.src = '/placeholder.svg';
-        }}
-      />;
+      return (
+        <img
+          src={`${imageUrl}?v=${cacheBuster}`}
+          alt="Category"
+          className="w-12 h-12 rounded-full object-cover"
+          onError={(e) => {
+            console.error('Error loading image:', imageUrl);
+            e.target.src = '/placeholder.svg';
+          }}
+        />
+      );
     }
     return <div className="w-12 h-12 bg-gray-300 rounded-full"></div>;
   };
@@ -169,7 +132,7 @@ const SellerManageCategories = () => {
 
       <section className="py-12 bg-white shadow-md">
         <div className="container mx-auto px-4">
-          {loading && (
+          {isLoading && (
             <div className="flex justify-center items-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
             </div>
@@ -177,13 +140,7 @@ const SellerManageCategories = () => {
 
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
-              <strong className="font-bold">Error:</strong> {error}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-8">
-              {successMessage}
+              <strong className="font-bold">Error:</strong> {error.message}
             </div>
           )}
 
@@ -236,7 +193,7 @@ const SellerManageCategories = () => {
             </form>
           ) : (
             <div className="space-y-4">
-              {categories.map((category) => (
+              {categories?.map((category) => (
                 <div key={category._id} className="bg-white shadow-md rounded-lg p-4 flex items-center justify-between">
                   <div className="flex items-center">
                     {renderCategoryImage(category.categoryImage)}

@@ -246,8 +246,7 @@ const LoginForm = () => {
     </>
   );
 };
-
-const FeatureItem = ({ icon: Icon, title, description }) => (
+ const FeatureItem = ({ icon: Icon, title, description }) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
